@@ -19,7 +19,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
   try {
     const userJid = m.messageStubParameters[0];
     const pp = bot.logo?.welcome || await conn.profilePictureUrl(userJid, "image").catch(() => null);
-    img = pp ? await (await fetch(pp)).buffer() : await fs.readFile("./media/avatar.jpg");
+    img = pp ? await (await fetch(pp)).buffer() : await fs.readFile("./src/avatar.jpg");
   } catch (e) {
     console.error("Error al obtener imagen:", e);
     img = await fs.readFile("./media/avatar.jpg");
