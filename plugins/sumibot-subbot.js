@@ -29,19 +29,15 @@ let handler = async (m, { conn: _conn, args, usedPrefix, command, isOwner }) => 
 	throw `📌 ${mssg.nobbot}\n\n wa.me/${global.conn.user.jid.split`@`[0]}?text=${usedPrefix}.code`
 }
 
-	//=====
   async function bbts() {
 
   let authFolderB = crypto.randomBytes(10).toString('hex').slice(0, 8)
-  //let authFolderB = m.sender.split('@')[0]
-
 
     if (!fs.existsSync("./sumibots/"+ authFolderB)){
         fs.mkdirSync("./sumibots/"+ authFolderB, { recursive: true });
     }
     args[0] ? fs.writeFileSync("./sumibots/" + authFolderB + "/creds.json", JSON.stringify(JSON.parse(Buffer.from(args[0], "base64").toString("utf-8")), null, '\t')) : ""
     
-//--
 const {state, saveState, saveCreds} = await useMultiFileAuthState(`./sumibots/${authFolderB}`)
 const msgRetryCounterMap = (MessageRetryMap) => { };
 const msgRetryCounterCache = new NodeCache()
@@ -59,7 +55,6 @@ const connectionOptions = {
   logger: pino({ level: 'silent' }),
   printQRInTerminal: false,
   mobile: MethodMobile, 
-  //browser: ['Chrome (Linux)', '', ''],
   browser: [ "Ubuntu", "Chrome", "20.0.04" ], 
   auth: {
   creds: state.creds,
@@ -78,17 +73,14 @@ const connectionOptions = {
   version
   }
 
-//--
 let conn = makeWASocket(connectionOptions)
 
 if (methodCode && !conn.authState.creds.registered) {
     if (!phoneNumber) {
-        //parent.sendMessage(m.chat, { text: `✴️ Su número de teléfono no está definido` }, { quoted: m })
         process.exit(0);
     }
     let cleanedNumber = phoneNumber.replace(/[^0-9]/g, '');
     if (!Object.keys(PHONENUMBER_MCC).some(v => cleanedNumber.startsWith(v))) {
-        //parent.sendMessage(m.chat, { text: `✴️ Su número debe comenzar con el código de país` }, { quoted: m })
         process.exit(0);
     }
 
@@ -96,11 +88,9 @@ if (methodCode && !conn.authState.creds.registered) {
         let codeBot = await conn.requestPairingCode(cleanedNumber);
         codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
         
-        // Send image and description with the code included
-        await parent.sendFile(m.chat, 'https://i.ibb.co/SKKdvRb/code.jpg', 'qrcode.png', `➤ Code: *${codeBot}*\n\n${mssg.botqr}`, m)
+        await parent.sendFile(m.chat, 'https://i.ibb.co/SKKdvRb/code.jpg', 'qrcode.png', `⭐ CODE DE VINCULACION ⭐\n\n🔗 Conexion Sub-Bot Mode Code\n\n⭐ Usa este Código para convertirte en un Sub-Bot Temporal.\n\n1 » Haga clic en los tres puntos en la esquina superior derecha\n\n2 » Toque dispositivos vinculados\n\n3 » Selecciona Vincular con el número de teléfono\n\n4 » Escriba el Código para iniciar sesion con el bot\n\n💠 No es recomendable usar tu cuenta principal.`, m)
         
-        // Send just the raw code in a separate message for easy copying
-        await parent.sendMessage(m.chat, { text: `${codeBot}` }, { quoted: m })
+        await parent.sendMessage(m.chat, { text: codeBot }, { quoted: m })
         
         rl.close();
     }, 3000);
@@ -108,19 +98,11 @@ if (methodCode && !conn.authState.creds.registered) {
 
 conn.isInit = false
 
-//---new
 let isInit = true
 
 async function connectionUpdate(update) {
     const { connection, lastDisconnect, isNewLogin, qr } = update
     if (isNewLogin) conn.isInit = true
-    // scan qr
-   /* if (qr) {
-      let scan = await parent.sendFile(m.chat, await qrcode.toDataURL(qr, { scale: 8 }), 'qrcode.png', `${mssg.botqr}`, m)
-  setTimeout(() => {
-    parent.sendMessage(m.chat, { delete: scan.key })
-  }, 50000) //50 segundos
-}*/
 
     const code = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode;
         if (code && code !== DisconnectReason.loggedOut && conn?.ws.socket == null) {
@@ -130,12 +112,11 @@ async function connectionUpdate(update) {
       global.conns.splice(i, 1)
 
      if (code !== DisconnectReason.connectionClosed){ 
-        parent.sendMessage(conn.user.jid, {text : `⚠️ ${mssg.recon}`}, { quoted: m }) //reconectar
+        parent.sendMessage(conn.user.jid, {text : `⚠️ ${mssg.recon}`}, { quoted: m })
     } else {
-        parent.sendMessage(m.chat, {text : `⛔ ${mssg.sesClose}`}, { quoted: m }) // session cerrada
+        parent.sendMessage(m.chat, {text : `⛔ ${mssg.sesClose}`}, { quoted: m })
     }
     }
-    //----
     if (global.db.data == null) loadDatabase()
 
     if (connection == 'open') {
@@ -145,14 +126,11 @@ async function connectionUpdate(update) {
     await sleep(5000)
     if (args[0]) return
     
-    // Send connection message
     await parent.sendMessage(conn.user.jid, {text : `✅ ${mssg.connMsg}`}, { quoted: m })
     
-    // Send just the raw code in a separate message for easy copying
     const codeText = usedPrefix + command + " " + Buffer.from(fs.readFileSync("./bebots/" + authFolderB + "/creds.json"), "utf-8").toString("base64")
     await parent.sendMessage(conn.user.jid, {text : codeText}, { quoted: m })
 	  }
- 
   }
 
   setInterval(async () => {
@@ -165,8 +143,6 @@ async function connectionUpdate(update) {
       global.conns.splice(i, 1)
     }}, 60000)
     
-
-	
 let handler = await import('../handler.js')
 let creloadHandler = async function (restatConn) {
 try {
@@ -183,13 +159,12 @@ isInit = true
 }
 
 if (!isInit) {
-conn.ev.off('messages.upsert', conn.handler)
-conn.ev.off('group-participants.update', conn.participantsUpdate)
-conn.ev.off('groups.update', conn.groupsUpdate)
-//conn.ev.off('message.delete', conn.onDelete)
-conn.ev.off('call', conn.onCall)
-conn.ev.off('connection.update', conn.connectionUpdate)
-conn.ev.off('creds.update', conn.credsUpdate)
+if (conn.handler) conn.ev.off('messages.upsert', conn.handler)
+if (conn.participantsUpdate) conn.ev.off('group-participants.update', conn.participantsUpdate)
+if (conn.groupsUpdate) conn.ev.off('groups.update', conn.groupsUpdate)
+if (conn.onCall) conn.ev.off('call', conn.onCall)
+if (conn.connectionUpdate) conn.ev.off('connection.update', conn.connectionUpdate)
+if (conn.credsUpdate) conn.ev.off('creds.update', conn.credsUpdate)
 }
   
 conn.welcome = global.conn.welcome + ''
@@ -200,14 +175,12 @@ conn.sdemote = global.conn.sdemote + ''
 conn.handler = handler.handler.bind(conn)
 conn.participantsUpdate = handler.participantsUpdate.bind(conn)
 conn.groupsUpdate = handler.groupsUpdate.bind(conn)
-//conn.onDelete = handler.deleteUpdate.bind(conn)
 conn.connectionUpdate = connectionUpdate.bind(conn)
 conn.credsUpdate = saveCreds.bind(conn, true)
 
 conn.ev.on('messages.upsert', conn.handler)
 conn.ev.on('group-participants.update', conn.participantsUpdate)
 conn.ev.on('groups.update', conn.groupsUpdate)
-//conn.ev.on('message.delete', conn.onDelete)
 conn.ev.on('connection.update', conn.connectionUpdate)
 conn.ev.on('creds.update', conn.credsUpdate)
 isInit = false
