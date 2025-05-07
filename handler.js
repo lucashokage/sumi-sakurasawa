@@ -488,7 +488,7 @@ export async function participantsUpdate({ id, participants, action }) {
       text = chat.sDemote || this.sdemote || conn.sdemote || "=͟͟͞❀ @user 𝙮𝙖 𝙣𝙤 𝙚𝙨 𝙖𝙙𝙢𝙞𝙣𝙞𝙨𝙩𝙧𝙖𝙙𝙤𝙧 ⏤͟͟͞͞★"
     }
     
-    const pp = await this.profilePictureUrl(participants[0], "image").catch((_) => "./media/avatar.jpg")
+    const pp = await this.profilePictureUrl(participants[0], "image").catch((_) => "./src/avatar.jpg")
     text = text.replace("@user", "@" + participants[0].split("@")[0])
     if (chat.detect) this.sendFile(id, pp, "pp.jpg", text, null, false, { mentions: this.parseMention(text) })
   }
