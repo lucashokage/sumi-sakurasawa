@@ -447,34 +447,41 @@ export async function participantsUpdate({ id, participants, action }) {
   if (global.db.data == null) await loadDatabase()
   const chat = global.db.data.chats[id] || {}
   
-  if (chat.welcome) {
+  // Only process if welcome is enabled and it's an add/remove action
+  if (chat.welcome && (action === "add" || action === "remove")) {
     const groupMetadata = (await this.groupMetadata(id)) || (conn.chats[id] || {}).metadata
     
+    // Use a Set to track processed users to prevent duplicates
+    const processedUsers = new Set()
+    
     for (const user of participants) {
-      // Only use the welcome plugin for add/remove actions
-      if (action === "add" || action === "remove") {
-        try {
-          // Import and use only the welcome plugin
-          const welcomePlugin = await import("./plugins/_welcome.js")
-          if (welcomePlugin && typeof welcomePlugin.before === "function") {
-            await welcomePlugin.before.call(
-              this,
-              {
-                messageStubType: action === "add" ? 27 : 28,
-                messageStubParameters: [user],
-                isGroup: true,
-                chat: id,
-              },
-              {
-                conn: this,
-                participants: groupMetadata.participants,
-                groupMetadata: groupMetadata,
-              },
-            )
-          }
-        } catch (e) {
-          console.error("Error in welcome plugin:", e)
+      // Skip if this user has already been processed
+      if (processedUsers.has(user)) continue
+      
+      // Mark user as processed
+      processedUsers.add(user)
+      
+      try {
+        // Import and use the welcome plugin
+        const welcomePlugin = await import("./plugins/_welcome.js")
+        if (welcomePlugin && typeof welcomePlugin.before === "function") {
+          await welcomePlugin.before.call(
+            this,
+            {
+              messageStubType: action === "add" ? 27 : 28,
+              messageStubParameters: [user],
+              isGroup: true,
+              chat: id,
+            },
+            {
+              conn: this,
+              participants: groupMetadata.participants,
+              groupMetadata: groupMetadata,
+            },
+          )
         }
+      } catch (e) {
+        console.error("Error in welcome plugin:", e)
       }
     }
   }
