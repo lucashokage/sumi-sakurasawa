@@ -1,6 +1,9 @@
 import fetch from "node-fetch";
 import fs from "fs/promises";
 
+// Cache para evitar mensajes duplicados
+const welcomeCache = new Set();
+
 export async function before(m, { conn, participants, groupMetadata }) {
   // Verificar si es un evento de grupo válido
   if (!m.messageStubType || !m.isGroup) return;
@@ -8,18 +11,27 @@ export async function before(m, { conn, participants, groupMetadata }) {
   const bot = global.db.data.settings[conn.user.jid] || {};
   const chat = global.db.data.chats[m.chat] || {};
 
+  // Crear una clave única para este evento
+  const eventKey = `${m.chat}_${m.messageStubParameters[0]}_${m.messageStubType}`;
+
+  // Si ya procesamos este evento, salir
+  if (welcomeCache.has(eventKey)) return;
+  welcomeCache.add(eventKey);
+
+  // Limpiar cache después de 5 segundos (opcional)
+  setTimeout(() => welcomeCache.delete(eventKey), 5000);
+
   // Configuración de mensajes
   const welcomeMsg = bot.welcome || "¡Bienvenido al grupo!";
   const byeMsg = bot.bye || "¡Adiós! Esperamos verte pronto.";
   const botName = bot.botName || "=͟͟͞❀ sᥙmі - sᥲkᥙrᥲsᥲᥕᥲ  ⏤͟͟͞͞★";
-  const devCredit = "=͟͟͞❀ sᥙmі - sᥲkᥙrᥲsᥲᥕᥲ  ⏤͟͟͞͞★";
 
-  // Obtener imagen de perfil con manejo robusto de errores
+  // Obtener imagen de perfil
   let img;
   try {
     const userJid = m.messageStubParameters[0];
     const pp = bot.logo?.welcome || await conn.profilePictureUrl(userJid, "image").catch(() => null);
-    img = pp ? await (await fetch(pp)).buffer() : await fs.readFile("./src/avatar.jpg");
+    img = pp ? await (await fetch(pp)).buffer() : await fs.readFile("./media/avatar.jpg");
   } catch (e) {
     console.error("Error al obtener imagen:", e);
     img = await fs.readFile("./media/avatar.jpg");
@@ -30,7 +42,7 @@ export async function before(m, { conn, participants, groupMetadata }) {
     ? participants.length + 1  // +1 para nuevo miembro
     : participants.length - 1;  // -1 para miembro que sale
 
-  // Enviar un único mensaje (bienvenida o despedida)
+  // Procesar el evento
   if (chat.welcome) {
     const userJid = m.messageStubParameters[0];
     const username = userJid.split("@")[0];
