@@ -28,6 +28,7 @@ console.log(`Error : ${e}`)
 }}
   
 global.creador = 'Wa.me/2348030943459'
+global.botname = '✦⏤͟͟͞͞ sumi sakurasawa ⏤͟͟͞͞✦'
 global.ofcbot = `${conn.user.jid.split('@')[0]}`
 global.asistencia = 'Wa.me/2348030943459'
 global.namechannel = '=͟͟͞❀ sᥙmі - sᥲkᥙrᥲsᥲᥕᥲ  ⏤͟͟͞͞★'
