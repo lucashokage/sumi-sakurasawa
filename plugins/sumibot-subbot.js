@@ -88,7 +88,7 @@ if (methodCode && !conn.authState.creds.registered) {
         let codeBot = await conn.requestPairingCode(cleanedNumber);
         codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
         
-        await parent.sendFile(m.chat, 'https://i.ibb.co/SKKdvRb/code.jpg', 'qrcode.png', `⭐ CODE DE VINCULACION ⭐\n\n🔗 Conexion Sub-Bot Mode Code\n\n⭐ Usa este Código para convertirte en un Sub-Bot Temporal.\n\n1 » Haga clic en los tres puntos en la esquina superior derecha\n\n2 » Toque dispositivos vinculados\n\n3 » Selecciona Vincular con el número de teléfono\n\n4 » Escriba el Código para iniciar sesion con el bot\n\n💠 No es recomendable usar tu cuenta principal.`, m)
+        await parent.sendFile(m.chat, 'https://i.ibb.co/SKKdvRb/code.jpg', 'qrcode.png', `CODE DE VINCULACION \n\n🔗 Conexion Sub-Bot Mode Code\n\n$ Usa este Código para convertirte en un Sub-Bot Temporal.\n\n1 » Haga clic en los tres puntos en la esquina superior derecha\n\n2 » Toque dispositivos vinculados\n\n3 » Selecciona Vincular con el número de teléfono\n\n4 » Escriba el Código para iniciar sesion con el bot\n\n💠 No es recomendable usar tu cuenta principal.`, m)
         
         await parent.sendMessage(m.chat, { text: codeBot }, { quoted: m })
         
