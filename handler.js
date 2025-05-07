@@ -538,18 +538,19 @@ export async function groupsUpdate(groupsUpdate) {
 
 global.dfail = (type, m, conn) => {
   const msg = {
-    rowner: `=͟͟͞❀ 👑 ${mssg.rownerH} ⏤͟͟͞͞★`,
-    owner: `=͟͟͞❀ 🔱 ${mssg.ownerH} ⏤͟͟͞͞★`,
-    mods: `=͟͟͞❀ 🔰 ${mssg.modsH} ⏤͟͟͞͞★`,
-    premium: `=͟͟͞❀ 💠 ${mssg.premH} ⏤͟͟͞͞★`,
-    group: `=͟͟͞❀ ⚙️ ${mssg.groupH} ⏤͟͟͞͞★`,
-    private: `=͟͟͞❀ 📮 ${mssg.privateH} ⏤͟͟͞͞★`,
-    admin: `=͟͟͞❀ 🛡️ ${mssg.adminH} ⏤͟͟͞͞★`,
-    botAdmin: `=͟͟͞❀ 💥 ${mssg.botAdmin} ⏤͟͟͞͞★`,
-    unreg: `=͟͟͞❀ 📇 ${mssg.unregH} ⏤͟͟͞͞★`,
-    restrict: "=͟͟͞❀ 🔐 𝙀𝙨𝙩𝙖 𝙘𝙖𝙧𝙖𝙘𝙩𝙚𝙧í𝙨𝙩𝙞𝙘𝙖 𝙚𝙨𝙩á *𝙙𝙚𝙨𝙝𝙖𝙗𝙞𝙡𝙞𝙩𝙖𝙙𝙖* ⏤͟͟͞͞★",
-  }[type]
-  if (msg) return m.reply(msg)
+    rowner: `=͟͟͞❀ 👑 ¡Eres el dueño principal del bot con máximos privilegios! ⏤͟͟͞͞★`,
+    owner: `=͟͟͞❀ 🔱 Tienes acceso completo a todos los comandos del bot. ⏤͟͟͞͞★`,
+    mods: `=͟͟͞❀ 🔰 Puedes usar comandos de administración y moderación. ⏤͟͟͞͞★`,
+    premium: `=͟͟͞❀ 💎 Disfruta de beneficios exclusivos como usuario premium. ⏤͟͟͞͞★`,
+    group: `=͟͟͞❀ ⚙️ Este comando solo funciona en chats grupales. ⏤͟͟͞͞★`,
+    private: `=͟͟͞❀ 📮 Este comando solo funciona en chats privados. ⏤͟͟͞͞★`,
+    admin: `=͟͟͞❀ 🛡️ Necesitas ser admin del grupo para esto. ⏤͟͟͞͞★`,
+    botAdmin: `=͟͟͞❀ 🤖 El bot necesita ser admin para esta acción. ⏤͟͟͞͞★`,
+    unreg: `=͟͟͞❀ 📇 Por favor regístrate primero con /register. ⏤͟͟͞͞★`,
+    restrict: `=͟͟͞❀ 🔐 Esta función está deshabilitada actualmente. ⏤͟͟͞͞★`
+}[type]
+
+if (msg) return m.reply(msg)
 }
 
 // Solución para el error de event listeners
