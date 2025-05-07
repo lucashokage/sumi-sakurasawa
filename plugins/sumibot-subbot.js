@@ -26,7 +26,7 @@ let handler = async (m, { conn: _conn, args, usedPrefix, command, isOwner }) => 
 
   let parent = args[0] && args[0] == 'plz' ? _conn : await global.conn
   if (!((args[0] && args[0] == 'plz') || (await global.conn).user.jid == _conn.user.jid)) {
-	throw `📌 ${mssg.nobbot}\n\n wa.me/${global.conn.user.jid.split`@`[0]}?text=${usedPrefix}.code`
+	throw `📌 No puedes usar este bot como sub-bot\n\n wa.me/${global.conn.user.jid.split`@`[0]}?text=${usedPrefix}.code`
 }
 
   async function bbts() {
@@ -88,7 +88,7 @@ if (methodCode && !conn.authState.creds.registered) {
         let codeBot = await conn.requestPairingCode(cleanedNumber);
         codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot;
         
-        await parent.sendFile(m.chat, 'https://i.ibb.co/SKKdvRb/code.jpg', 'qrcode.png', `CODE DE VINCULACION \n\n🔗 Conexion Sub-Bot Mode Code\n\n$ Usa este Código para convertirte en un Sub-Bot Temporal.\n\n1 » Haga clic en los tres puntos en la esquina superior derecha\n\n2 » Toque dispositivos vinculados\n\n3 » Selecciona Vincular con el número de teléfono\n\n4 » Escriba el Código para iniciar sesion con el bot\n\n💠 No es recomendable usar tu cuenta principal.`, m)
+        await parent.sendFile(m.chat, 'https://i.ibb.co/SKKdvRb/code.jpg', 'qrcode.png', `⭐ CODE DE VINCULACION ⭐\n\n🔗 Conexion Sub-Bot Mode Code\n\n⭐ Usa este Código para convertirte en un Sub-Bot Temporal.\n\n1 » Haga clic en los tres puntos en la esquina superior derecha\n\n2 » Toque dispositivos vinculados\n\n3 » Selecciona Vincular con el número de teléfono\n\n4 » Escriba el Código para iniciar sesion con el bot\n\n💠 No es recomendable usar tu cuenta principal.`, m)
         
         await parent.sendMessage(m.chat, { text: codeBot }, { quoted: m })
         
@@ -112,9 +112,9 @@ async function connectionUpdate(update) {
       global.conns.splice(i, 1)
 
      if (code !== DisconnectReason.connectionClosed){ 
-        parent.sendMessage(conn.user.jid, {text : `⚠️ ${mssg.recon}`}, { quoted: m })
+        parent.sendMessage(conn.user.jid, {text : `⚠️ Conexión perdida, intentando reconectar...`}, { quoted: m })
     } else {
-        parent.sendMessage(m.chat, {text : `⛔ ${mssg.sesClose}`}, { quoted: m })
+        parent.sendMessage(m.chat, {text : `⛔ La sesión ha sido cerrada, deberás conectarte nuevamente`}, { quoted: m })
     }
     }
     if (global.db.data == null) loadDatabase()
@@ -122,11 +122,11 @@ async function connectionUpdate(update) {
     if (connection == 'open') {
     conn.isInit = true
     global.conns.push(conn)
-    await parent.sendMessage(m.chat, {text : args[0] ? `✅ ${mssg.connet}` : `✅ ${mssg.connID}`}, { quoted: m })
+    await parent.sendMessage(m.chat, {text : args[0] ? `✅ Conectado exitosamente al bot!` : `✅ Bot conectado correctamente con ID: ${conn.user.jid.split`@`[0]}`}, { quoted: m })
     await sleep(5000)
     if (args[0]) return
     
-    await parent.sendMessage(conn.user.jid, {text : `✅ ${mssg.connMsg}`}, { quoted: m })
+    await parent.sendMessage(conn.user.jid, {text : `✅ ¡Conectado exitosamente! Ahora eres un sub-bot. Usa los comandos normalmente.`}, { quoted: m })
     
     const codeText = usedPrefix + command + " " + Buffer.from(fs.readFileSync("./bebots/" + authFolderB + "/creds.json"), "utf-8").toString("base64")
     await parent.sendMessage(conn.user.jid, {text : codeText}, { quoted: m })
