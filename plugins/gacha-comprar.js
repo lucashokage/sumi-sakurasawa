@@ -61,29 +61,25 @@ const handler = async (m, { conn, args, text }) => {
 
     const price = characterToBuy.price
 
-    if (global.db.data.users[buyer].exp < price) {
+    if (!global.db.data.users[buyer].coin || global.db.data.users[buyer].coin < price) {
       return conn.reply(
         m.chat,
-        `《✧》No tienes suficiente exp para comprar a *${characterToBuy.name}*. Necesitas *${price}* exp.`,
+        `《✧》No tienes suficiente coin para comprar a *${characterToBuy.name}*. Necesitas *${price}* coin.`,
         m,
       )
     }
 
-    // Calcular comisión (25%)
-    const sellerExp = Math.floor(price * 0.75)
+    const sellerCoin = Math.floor(price * 0.75)
 
-    // Actualizar exp
-    global.db.data.users[buyer].exp -= price
-    global.db.data.users[characterToBuy.seller].exp += sellerExp
+    global.db.data.users[buyer].coin -= price
+    global.db.data.users[characterToBuy.seller].coin += sellerCoin
 
-    // Actualizar propietario en characters.json
     const seller = characterToBuy.seller
     characterToBuy.user = buyer
     characterToBuy.forSale = false
     delete characterToBuy.price
     delete characterToBuy.seller
 
-    // Actualizar harem.json
     const sellerEntryIndex = harem.findIndex(
       (entry) => entry.userId === seller && entry.characterId === characterToBuy.id,
     )
@@ -108,7 +104,7 @@ const handler = async (m, { conn, args, text }) => {
 
     conn.reply(
       m.chat,
-      `❀ Has comprado a *${characterToBuy.name}* por *${price}* exp.\n\n> El vendedor @${seller.split("@")[0]} ha recibido *${sellerExp}* exp (comisión del 25%).`,
+      `❀ Has comprado a *${characterToBuy.name}* por *${price}* coin.\n\n> El vendedor @${seller.split("@")[0]} ha recibido *${sellerCoin}* coin (comisión del 25%).`,
       m,
       {
         mentions: [seller],
