@@ -1,12 +1,18 @@
-import { getCountryFromNumber } from "./paises.js"
-
-async function generateMenu(m, conn) {
+const handler = async (m, { conn, usedPrefix, command }) => {
   try {
-    const user = global.db.data.users[m.sender] || {}
-    const username = user.name || m.pushName || "Usuario"
+    // Obtener datos del usuario y del bot
+    const userId = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
+    const user = global.db.data.users[userId] || {}
+    const name = conn.getName(userId)
+    const _uptime = process.uptime() * 1000
+    const uptime = clockString(_uptime)
+    const totalreg = Object.keys(global.db.data.users).length
     const pluginsCount = Object.keys(global.plugins || {}).length
     const botType = user.isbebot ? "subbot" : "official"
     const displayBotName = botType === "official" ? "✦⏤͟͟͞͞ sumi sakurasawa ⏤͟͟͞͞✦" : user.namebebot || "subBot"
+    const bot = global.db.data.settings[conn.user.jid] || {}
+
+    // Obtener fecha actual
     const date = new Date()
     const options = {
       day: "2-digit",
@@ -18,12 +24,13 @@ async function generateMenu(m, conn) {
     }
     const currentDate = date.toLocaleDateString("es-ES", options)
 
-    const country = await getCountryFromNumber(m.sender.split("@")[0])
-    const usersCount = Object.keys(global.db.data.users).length
+    // Obtener país del usuario
+    const country = getCountryFromNumber(m.sender.split("@")[0])
 
+    // Construir el menú
     let menu = `ׄ    ִ ⏝︶ ׄ   ⋆   ׄ ︶⏝ ִ    ׄ  
 
-> _Hola @${m.sender.split("@")[0]}, bienvenido/a al menú de @${displayBotName}_
+> _Hola @${userId.split("@")[0]}, bienvenido/a al menú de @${displayBotName}_
 
 ╭┈ ↷
 │➮ *Tipo ›* ${botType === "official" ? "prem Bot🅢" : "subBot"} 
@@ -32,7 +39,8 @@ async function generateMenu(m, conn) {
 │
 │• *Fecha ›* ${currentDate}
 │• *Pais ›* ${country}
-│• *Usuarios ›* ${usersCount.toLocaleString()}
+│• *Usuarios ›* ${totalreg.toLocaleString()}
+│• *Activada ›* ${uptime}
 ╰╶͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜╴✧╶͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜╴✧╶͜─ׄ͜─ׄ֟፝͜
 
 ✐; *❀*→ ᴘᴀʀᴀ ᴄʀᴇᴀʀ ᴜɴ sᴜʙ-ʙᴏᴛ ᴄᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ ᴜᴛɪʟɪᴢᴀ *#qr* o *#code*`
@@ -113,28 +121,139 @@ async function generateMenu(m, conn) {
       { cmd: "#tourl › #catbox", desc: "_*Convierte la imagen en un link.*_" },
     ])
 
-    return menu
+    // Enviar el menú como mensaje con imagen
+    await conn.sendMessage(
+      m.chat,
+      {
+        text: menu,
+        contextInfo: {
+          mentionedJid: [m.sender, userId],
+          isForwarded: true,
+          forwardingScore: 999,
+          externalAdReply: {
+            title: displayBotName,
+            body: "Menú de comandos",
+            thumbnailUrl: bot.logo?.banner || "https://i.ibb.co/S32y0NL/banner.jpg",
+            sourceUrl: "https://github.com/",
+            mediaType: 1,
+            showAdAttribution: true,
+            renderLargerThumbnail: true,
+          },
+        },
+      },
+      { quoted: m },
+    )
   } catch (error) {
-    console.error("Error al generar el menú:", error)
-    return "❌ Ocurrió un error al generar el menú. Por favor, inténtalo de nuevo."
+    console.error("Error en el comando menu:", error)
+    m.reply("❌ Ocurrió un error al procesar el comando")
   }
 }
 
+// Función para generar una sección del menú
 function generateSection(title, commands) {
   let section = `
 
-╭ׅ╶͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜  ❀ *${title}* ❀  ִ.`
+»  ⊹˚୨ •(=^●ω●^=)• *${title}*  ❀
+
+ᥫ᭡ Comandos para ${getDescriptionForSection(title)}.
+─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─⭒─ׄ─ׅ─ׄ─`
 
   commands.forEach((cmd) => {
     section += `
-┃✿ᩧ̼ ❫❯ *${cmd.cmd}*
+ᰔᩚ *${cmd.cmd}*
 > ${cmd.desc}`
   })
-
-  section += `
-╰ׅ─ׄ֟፝͜─ׄ͜─ׄ͜╴  ֢ ⋱࣭ ᩴ   ⋮֔    ᩴ ⋰ ֢ ─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜╴╯ׅ`
 
   return section
 }
 
-export default generateMenu
+// Función para obtener descripción de sección
+function getDescriptionForSection(title) {
+  const descriptions = {
+    SETLOGO: "cambiar logos y nombres",
+    ANIME: "interacciones de anime",
+    DOWNLOAD: "descargar contenido de varias plataformas",
+    GACHA: "coleccionar y gestionar waifus",
+    GRUPO: "administrar grupos",
+    IA: "interactuar con inteligencia artificial",
+    INFO: "obtener información del bot",
+    NSFW: "contenido para adultos",
+    PROFILE: "gestionar tu perfil",
+    RPG: "jugar y ganar monedas",
+    UTILS: "herramientas útiles",
+  }
+
+  return descriptions[title] || "usar comandos diversos"
+}
+
+// Función para determinar el país basado en el código del número
+function getCountryFromNumber(phoneNumber) {
+  try {
+    const cleanNumber = phoneNumber.replace(/[^\d]/g, "")
+
+    // Mapeo directo de códigos de país
+    const countryCodes = {
+      1: "Estados Unidos",
+      52: "México",
+      51: "Perú",
+      57: "Colombia",
+      56: "Chile",
+      54: "Argentina",
+      591: "Bolivia",
+      593: "Ecuador",
+      595: "Paraguay",
+      598: "Uruguay",
+      58: "Venezuela",
+      34: "España",
+      55: "Brasil",
+      502: "Guatemala",
+      503: "El Salvador",
+      504: "Honduras",
+      505: "Nicaragua",
+      506: "Costa Rica",
+      507: "Panamá",
+      809: "República Dominicana",
+      1787: "Puerto Rico",
+      53: "Cuba",
+    }
+
+    // Comprobar códigos de 3 dígitos primero
+    for (const [code, country] of Object.entries(countryCodes)) {
+      if (code.length === 3 && cleanNumber.startsWith(code)) {
+        return country
+      }
+    }
+
+    // Luego comprobar códigos de 2 dígitos
+    for (const [code, country] of Object.entries(countryCodes)) {
+      if (code.length === 2 && cleanNumber.startsWith(code)) {
+        return country
+      }
+    }
+
+    // Finalmente comprobar códigos de 1 dígito
+    for (const [code, country] of Object.entries(countryCodes)) {
+      if (code.length === 1 && cleanNumber.startsWith(code)) {
+        return country
+      }
+    }
+
+    return "Desconocido"
+  } catch (error) {
+    return "Desconocido"
+  }
+}
+
+// Función para formatear el tiempo de actividad
+function clockString(ms) {
+  const seconds = Math.floor((ms / 1000) % 60)
+  const minutes = Math.floor((ms / (1000 * 60)) % 60)
+  const hours = Math.floor((ms / (1000 * 60 * 60)) % 24)
+  return `${hours}h ${minutes}m ${seconds}s`
+}
+
+handler.help = ["menu", "help", "comandos"]
+handler.tags = ["main"]
+handler.command = /^(menu|help|comandos|cmd)$/i
+
+export default handler
