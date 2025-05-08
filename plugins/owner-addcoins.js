@@ -2,6 +2,7 @@ import db from '../lib/database.js';
 import MessageType from '@whiskeysockets/baileys';
 
 let impts = 0;
+let coin = 0; // Definición de coin
 
 let handler = async (m, { conn, text }) => {
     let who;
@@ -23,7 +24,7 @@ let handler = async (m, { conn, text }) => {
     if (isNaN(txt)) return m.reply(`${emoji2} sólo números.`);
     
     let dmt = parseInt(txt);
-    let coin = dmt;
+    coin = dmt;
     let pjk = Math.ceil(dmt * impts);
     coin += pjk;
     
