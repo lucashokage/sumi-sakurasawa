@@ -3,13 +3,14 @@ import { promises as fs } from "fs"
 const charactersFilePath = "./src/database/characters.json"
 const haremFilePath = "./src/database/harem.json"
 const pendingSales = new Map()
-const cooldownTime = 3600000 // 1 hora
+const cooldownTime = 3600000
 
 async function loadCharacters() {
   try {
     const data = await fs.readFile(charactersFilePath, "utf-8")
     return JSON.parse(data)
   } catch (error) {
+    console.error("Error al cargar personajes:", error)
     return []
   }
 }
@@ -27,6 +28,7 @@ async function loadHarem() {
     const data = await fs.readFile(haremFilePath, "utf-8")
     return JSON.parse(data)
   } catch (error) {
+    console.error("Error al cargar harem:", error)
     return []
   }
 }
@@ -146,7 +148,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
             mentions: [mentioned],
           },
         )
-      }, 60000), // 1 minuto
+      }, 60000),
     })
 
     conn.reply(
@@ -165,7 +167,12 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     characterToSell.previousPrice = previousPrice
 
     await saveCharacters(characters)
-    conn.reply(m.chat, `✅ Has puesto a la venta *${characterToSell.name}* en el mercado por ${price} coin.`, m)
+
+    conn.reply(
+      m.chat,
+      `✅ Has puesto a la venta *${characterToSell.name}* en el mercado por ${price} coin.\n\n> Para retirarlo usa: .retirar ${characterToSell.name}`,
+      m,
+    )
   }
 }
 
@@ -192,19 +199,15 @@ handler.before = async (m, { conn }) => {
       return conn.reply(m.chat, "⚠️ No tienes suficiente coin para comprar este personaje.", m)
     }
 
-    // Calcular comisión (25%)
     const sellerCoin = Math.floor(price * 0.75)
 
-    // Actualizar coin
     global.db.data.users[buyer].coin -= price
     global.db.data.users[seller].coin += sellerCoin
 
-    // Actualizar propietario en characters.json
     updatedCharacter.user = buyer
     updatedCharacter.price = price
     updatedCharacter.forSale = false
 
-    // Actualizar harem.json
     const sellerEntryIndex = harem.findIndex((entry) => entry.userId === seller && entry.characterId === character.id)
     if (sellerEntryIndex !== -1) {
       harem.splice(sellerEntryIndex, 1)
