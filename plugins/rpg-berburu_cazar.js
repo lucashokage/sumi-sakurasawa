@@ -82,7 +82,7 @@ const handler = async (m, {conn}) => {
   }, 18000);
 
   setTimeout(() => {
-    conn.reply(m.chat, `@${m.sender.split('@s.whatsapp.net')[0]} *${['Armas lista para la Caza!!', 'Probando Armas 🔫 💣 🪓 🏹', 'CARROS PARA LA CAZA!! 🚗 🏍️ 🚜', 'TIEMPO BUENO PARA LA CAZA   'Probando Armas 🔫 💣 🪓 🏹', 'CARROS PARA LA CAZA!! 🚗 🏍️ 🚜', 'TIEMPO BUENO PARA LA CAZA 🧤'].getRandom()}*`, null, {mentions: [m.sender]});
+    conn.reply(m.chat, `@${m.sender.split('@s.whatsapp.net')[0]} *${['Armas lista para la Caza!!', 'Cargando Armas 🔫 💣 🪓 🏹', 'CARROS PARA LA CAZA!! 🚗 🏍️ 🚜', 'TIEMPO BUENO PARA LA CAZA   'Probando Armas 🔫 💣 🪓 🏹', 'CARROS PARA LA CAZA!! 🚗 🏍️ 🚜', 'TIEMPO BUENO PARA LA CAZA 🧤'].getRandom()}*`, null, {mentions: [m.sender]});
   }, 15000);
 
   setTimeout(() => {
