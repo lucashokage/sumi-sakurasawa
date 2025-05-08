@@ -3,7 +3,7 @@ const Reg = /\|?(.*)([.|] *?)([0-9]*)$/i
 const handler = async (m, { conn, text, usedPrefix, command }) => {
   const who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.fromMe ? conn.user.jid : m.sender
   const mentionedJid = [who]
-  const pp = await conn.profilePictureUrl(who, "image").catch((_) => "https://files.catbox.moe/xr2m6u.jpg")
+  const pp = await conn.profilePictureUrl(who, "image").catch((_) => "./src/avatar.jpg")
   const user = global.db.data.users[m.sender]
   const name2 = conn.getName(m.sender)
 
@@ -39,7 +39,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   global.db.data.users[m.sender].joincount += tokenReward
 
   const textbot = "✧ Gracias por registrarte ✧"
-  const channel = "h......"
   const dev = "powered by leonel"
 
   let regbot = `❀ 𝗥 𝗘 𝗚 𝗜 𝗦 𝗧 𝗥 𝗔 𝗗 𝗢 ❀\n`
@@ -65,7 +64,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
           title: "✧ Usuario Verificado ✧",
           body: textbot,
           thumbnailUrl: pp,
-          sourceUrl: channel,
+          sourceUrl: pp,
           mediaType: 1,
           showAdAttribution: true,
           renderLargerThumbnail: true,
