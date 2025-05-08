@@ -51,6 +51,7 @@
         "google-libphonenumber": "3.2.38",
         "awesome-phonenumber": "^3.4.0",
         "axios": "^1.1.2",
+        "acrcloud": "^1.4.0",
         "form-data": "^4.0.0",
         "cfonts": "^3.1.1",
         "canvas": "^2.5.0",
