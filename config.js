@@ -96,6 +96,7 @@ global.rwait = '🕒'
 global.done = '✅'
 global.error = '✖️'
 global.msm = '⚠︎'
+global.etiqueta = 'sumi sakurasawa'
 
 global.emoji = '❀'
 global.emoji2 = '✧'
