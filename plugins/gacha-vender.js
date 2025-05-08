@@ -70,7 +70,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     let characterList = "Lista de tus personajes:\n"
 
     userCharacters.forEach((character, index) => {
-      characterList += `${index + 1}. ${character.name} - ${character.value} exp\n`
+      characterList += `${index + 1}. ${character.name} - ${character.value} coin\n`
     })
 
     return conn.reply(
@@ -123,9 +123,9 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
   const minPrice = calculateMinPrice(characterToSell.value)
   const maxPrice = calculateMaxPrice(characterToSell.value, characterToSell.votes || 0)
   if (price < minPrice)
-    return conn.reply(m.chat, `⚠️ El precio mínimo permitido para ${characterToSell.name} es ${minPrice} exp.`, m)
+    return conn.reply(m.chat, `⚠️ El precio mínimo permitido para ${characterToSell.name} es ${minPrice} coin.`, m)
   if (price > maxPrice)
-    return conn.reply(m.chat, `⚠️ El precio máximo permitido para ${characterToSell.name} es ${maxPrice} exp.`, m)
+    return conn.reply(m.chat, `⚠️ El precio máximo permitido para ${characterToSell.name} es ${maxPrice} coin.`, m)
 
   if (mentioned) {
     if (pendingSales.has(mentioned))
@@ -151,7 +151,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
     conn.reply(
       m.chat,
-      `📜 @${mentioned.split("@")[0]}, el usuario @${m.sender.split("@")[0]} quiere venderte *${characterToSell.name}* por ${price} exp.\n\nResponde con:\n- *Aceptar* para comprar.\n- *Rechazar* para cancelar.`,
+      `📜 @${mentioned.split("@")[0]}, el usuario @${m.sender.split("@")[0]} quiere venderte *${characterToSell.name}* por ${price} coin.\n\nResponde con:\n- *Aceptar* para comprar.\n- *Rechazar* para cancelar.`,
       m,
       {
         mentions: [mentioned, m.sender],
@@ -165,7 +165,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     characterToSell.previousPrice = previousPrice
 
     await saveCharacters(characters)
-    conn.reply(m.chat, `✅ Has puesto a la venta *${characterToSell.name}* en el mercado por ${price} exp.`, m)
+    conn.reply(m.chat, `✅ Has puesto a la venta *${characterToSell.name}* en el mercado por ${price} coin.`, m)
   }
 }
 
@@ -187,17 +187,17 @@ handler.before = async (m, { conn }) => {
       return conn.reply(m.chat, "⚠️ El personaje ya no está disponible para la venta.", m)
     }
 
-    if (global.db.data.users[buyer].exp < price) {
+    if (!global.db.data.users[buyer].coin || global.db.data.users[buyer].coin < price) {
       pendingSales.delete(buyerId)
-      return conn.reply(m.chat, "⚠️ No tienes suficiente exp para comprar este personaje.", m)
+      return conn.reply(m.chat, "⚠️ No tienes suficiente coin para comprar este personaje.", m)
     }
 
     // Calcular comisión (25%)
-    const sellerExp = Math.floor(price * 0.75)
+    const sellerCoin = Math.floor(price * 0.75)
 
-    // Actualizar exp
-    global.db.data.users[buyer].exp -= price
-    global.db.data.users[seller].exp += sellerExp
+    // Actualizar coin
+    global.db.data.users[buyer].coin -= price
+    global.db.data.users[seller].coin += sellerCoin
 
     // Actualizar propietario en characters.json
     updatedCharacter.user = buyer
@@ -230,7 +230,7 @@ handler.before = async (m, { conn }) => {
 
     conn.reply(
       m.chat,
-      `❀ @${buyer.split("@")[0]} ha comprado *${character.name}* de @${seller.split("@")[0]} por ${price} exp.`,
+      `❀ @${buyer.split("@")[0]} ha comprado *${character.name}* de @${seller.split("@")[0]} por ${price} coin.`,
       m,
       {
         mentions: [buyer, seller],
