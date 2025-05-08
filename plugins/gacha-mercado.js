@@ -38,7 +38,7 @@ const handler = async (m, { conn, args }) => {
       const character = charactersToShow[i]
       message += `${startIndex + i + 1}. *${character.name}*\n`
       message += `   ⚥ Género: *${character.gender}*\n`
-      message += `   ✰ Precio: *${character.price} exp*\n`
+      message += `   ✰ Precio: *${character.price} coin*\n`
       message += `   ❖ Fuente: *${character.source}*\n`
       message += `   ♡ Vendedor: *@${character.seller.split("@")[0]}*\n\n`
     }
