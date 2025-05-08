@@ -20,7 +20,7 @@ await m.reply(`${global.emoji} Depositaste *${count} ${global.moneda}⛀* en el 
 
 handler.help = ['depositar']
 handler.tags = ['rpg']
-handler.command = ['deposit', 'depositar', 'dep']
+handler.command = ['deposit', 'd', 'depositar', 'dep']
 handler.group = true
 handler.register = true
 
