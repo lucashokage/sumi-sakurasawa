@@ -1,6 +1,6 @@
 const handler = async (m, { conn, usedPrefix, command }) => {
   try {
-    // Obtener datos del usuario y del bot
+    
     const userId = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
     const user = global.db.data.users[userId] || {}
     const name = conn.getName(userId)
@@ -8,11 +8,11 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     const uptime = clockString(_uptime)
     const totalreg = Object.keys(global.db.data.users).length
     const pluginsCount = Object.keys(global.plugins || {}).length
-    const botType = user.isbebot ? "subbot" : "official"
+    const botType = conn.user.jid == global.conn.user.jid ? "official" : "subbot"
     const displayBotName = botType === "official" ? "✦⏤͟͟͞͞ sumi sakurasawa ⏤͟͟͞͞✦" : user.namebebot || "subBot"
     const bot = global.db.data.settings[conn.user.jid] || {}
 
-    // Obtener fecha actual
+    
     const date = new Date()
     const options = {
       day: "2-digit",
@@ -24,7 +24,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     }
     const currentDate = date.toLocaleDateString("es-ES", options)
 
-    // Obtener país del usuario
+    
     const country = getCountryFromNumber(m.sender.split("@")[0])
 
     // Construir el menú
@@ -33,7 +33,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
 > _Hola @${userId.split("@")[0]}, bienvenido/a al menú de @${displayBotName}_
 
 ╭┈ ↷
-│➮ *Tipo ›* ${botType === "official" : "subBot"} 
+│➮ *Tipo ›* ${botType === "official" ? "Principal 🅥" : "Sub Bot 🅑"}
 │✧ *Versión ›* ^1.0.0
 │❖ *Plugins ›* ${pluginsCount}
 │
@@ -132,9 +132,9 @@ const handler = async (m, { conn, usedPrefix, command }) => {
           forwardingScore: 999,
           externalAdReply: {
             title: displayBotName,
-            body: "Menú de comandos",
-            thumbnailUrl: bot.logo?.banner || "https://i.ibb.co/S32y0NL/banner.jpg",
-            sourceUrl: "https://github.com/",
+            body: "Menú general",
+            thumbnailUrl: bot.logo?.banner || "https://files.catbox.moe/k2hyt1.jpg",
+            sourceUrl: "https://files.catbox.moe/k2hyt1.jpg",
             mediaType: 1,
             showAdAttribution: true,
             renderLargerThumbnail: true,
