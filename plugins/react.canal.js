@@ -1,19 +1,18 @@
 const handler = async (m, { conn, args }) => {
     // Verificación básica de argumentos
     if (!args || args.length < 2) {
-        return m.reply(`Ejemplo de uso:\n.chReact https://whatsapp.com/channel/xxxx "texto de reacción"`);
+        return m.reply(`✳️ Ejemplo de uso:\n.chReact https://whatsapp.com/channel/0029VbAuC6yEquiGBk2VjT2O/100 "texto de reacción"`);
     }
 
-    // Validación del enlace del canal
-    const validLinkPatterns = [
-        /^https:\/\/whatsapp\.com\/channel\/[A-Z0-9]{22}$/i,
-        /^https:\/\/whatsapp\.com\/channel\/[A-Z0-9]{22}\/[A-Z0-9]+$/i
-    ];
+    // Validación estricta del enlace del canal
+    const channelLinkRegex = /^https:\/\/whatsapp\.com\/channel\/([A-Za-z0-9]{22})\/([A-Za-z0-9]+)$/;
+    const match = args[0].match(channelLinkRegex);
     
-    const isValidLink = validLinkPatterns.some(pattern => pattern.test(args[0]));
-    if (!isValidLink) {
-        return m.reply("Enlace no válido. Debe ser un enlace de canal de WhatsApp válido.");
+    if (!match) {
+        return m.reply("❌ Enlace no válido. Debe ser en formato:\nhttps://whatsapp.com/channel/ID_CANAL/ID_MENSAJE\n\nEjemplo:\nhttps://whatsapp.com/channel/0029VbAuC6yEquiGBk2VjT2O/100");
     }
+
+    const [, channelId, messageId] = match;
 
     // Mapeo de caracteres a emojis estilizados
     const styleMap = {
@@ -31,45 +30,35 @@ const handler = async (m, { conn, args }) => {
     const emojiReaction = reactionText.split('').map(c => styleMap[c] || c).join('');
 
     try {
-        // Extraer información del enlace
-        const urlParts = args[0].split('/');
-        const channelId = urlParts[4];
-        const messageId = urlParts[5] || null; // Manejar caso sin messageId
-
         // Obtener metadatos del canal
         const channelInfo = await conn.newsletterMetadata("invite", channelId);
         if (!channelInfo) {
-            return m.reply("No se pudo obtener información del canal.");
-        }
-
-        // Verificar si el mensaje existe
-        if (!messageId) {
-            return m.reply("El enlace debe incluir el ID del mensaje.");
+            return m.reply("❌ No se pudo obtener información del canal. Verifica que el enlace sea correcto.");
         }
 
         // Enviar reacción
         await conn.newsletterReactMessage(channelInfo.id, messageId, emojiReaction);
 
-        return m.reply(`✅ Reacción *${emojiReaction}* enviada correctamente al mensaje en el canal *${channelInfo.name}*.`);
+        return m.reply(`✅ Reacción *${emojiReaction}* enviada correctamente al mensaje en el canal *${channelInfo.name}*`);
     } catch (error) {
         console.error('Error en chReact:', error);
         
         // Manejo de errores específicos
         if (error.message.includes('not found')) {
-            return m.reply("El canal o mensaje no fue encontrado. Verifica el enlace.");
+            return m.reply("❌ El canal o mensaje no fue encontrado. Verifica que:\n1. El enlace sea correcto\n2. Tengas acceso al canal\n3. El mensaje aún exista");
         }
         if (error.message.includes('react')) {
-            return m.reply("Error al enviar la reacción. ¿Tienes permiso para reaccionar?");
+            return m.reply("❌ Error al enviar la reacción. ¿Tienes permiso para reaccionar en este canal?");
         }
         
-        return m.reply("Ocurrió un error inesperado. Por favor intenta nuevamente.");
+        return m.reply("❌ Ocurrió un error inesperado. Por favor intenta nuevamente.");
     }
 };
 
 handler.help = ['chReact <enlace_canal> <texto>'];
 handler.tags = ['channel'];
 handler.command = /^(channelreact|chreact)$/i;
-handler.group = false; // Solo funciona en chats privados
-handler.admin = false; // No requiere privilegios admin
+handler.group = false;
+handler.admin = false;
 
 export default handler;
