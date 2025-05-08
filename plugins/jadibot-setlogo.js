@@ -55,9 +55,10 @@ ${usedPrefix + command} welcome
 ≡ 🌴 Se ha cambiado con éxito la imagen ${isWel ? "de la bienvenida" : "del menú"} para @${conn.user.jid.split("@")[0]}
 `;
 
-    if (!global.db.data.settings[conn.user.jid]) {
-        global.db.data.settings[conn.user.jid] = { logo: {} };
-    }
+    // Inicialización segura de la estructura de datos
+    if (!global.db.data.settings) global.db.data.settings = {};
+    if (!global.db.data.settings[conn.user.jid]) global.db.data.settings[conn.user.jid] = {};
+    if (!global.db.data.settings[conn.user.jid].logo) global.db.data.settings[conn.user.jid].logo = {};
 
     if (args[0] === "banner" || args[0] === "welcome") {
         global.db.data.settings[conn.user.jid].logo[args[0]] = file[0].url;
