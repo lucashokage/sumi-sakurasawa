@@ -39,8 +39,8 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   global.db.data.users[m.sender].joincount += tokenReward
 
   const textbot = "✧ Gracias por registrarte ✧"
-  const channel = "https://whatsapp.com/channel/0029VaFVSkRCMY0KFmCMDX2q"
-  const dev = "✧ Desarrollado por @The-King-Destroy"
+  const channel = "h......"
+  const dev = "powered by leonel"
 
   let regbot = `❀ 𝗥 𝗘 𝗚 𝗜 𝗦 𝗧 𝗥 𝗔 𝗗 𝗢 ❀\n`
   regbot += `•┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄•\n`
@@ -52,7 +52,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   regbot += `> • ✰ *Experiencia* » ${expReward}\n`
   regbot += `> • ❖ *Tokens* » ${tokenReward}\n`
   regbot += `•┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄•\n`
-  regbot += `> ${dev}`
+  regbot += `leonel`
 
   await m.react("📩")
 
