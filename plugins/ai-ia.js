@@ -1,74 +1,96 @@
-import axios from 'axios'
-import fetch from 'node-fetch'
+import axios from 'axios';
+import fetch from 'node-fetch';
 
-let handler = async (m, { conn, usedPrefix, command, text }) => {
-const isQuotedImage = m.quoted && (m.quoted.msg || m.quoted).mimetype && (m.quoted.msg || m.quoted).mimetype.startsWith('image/')
-const username = `${conn.getName(m.sender)}`
-const basePrompt = `Tu nombre es ${botname} y parece haber sido creada por ${etiqueta}. Tu versión actual es ${vs}, Tú usas el idioma Español. Llamarás a las personas por su nombre ${username}, te gusta ser divertida, y te encanta aprender. Lo más importante es que debes ser amigable con la persona con la que estás hablando. ${username}`
-if (isQuotedImage) {
-const q = m.quoted
-const img = await q.download?.()
-if (!img) {
-console.error(`${msm} Error: No image buffer available`)
-return conn.reply(m.chat, '✘ ChatGpT no pudo descargar la imagen.', m)}
-const content = `${emoji} ¿Qué se observa en la imagen?`
-try {
-const imageAnalysis = await fetchImageBuffer(content, img)
-const query = `${emoji} Descríbeme la imagen y detalla por qué actúan así. También dime quién eres`
-const prompt = `${basePrompt}. La imagen que se analiza es: ${imageAnalysis.result}`
-const description = await luminsesi(query, username, prompt)
-await conn.reply(m.chat, description, m)
-} catch {
-await m.react(error)
-await conn.reply(m.chat, '✘ ChatGpT no pudo analizar la imagen.', m)}
-} else {
-if (!text) { return conn.reply(m.chat, `${emoji} Ingrese una petición para que el ChatGpT lo responda.`, m)}
-await m.react(rwait)
-try {
-const { key } = await conn.sendMessage(m.chat, {text: `${emoji2} ChatGPT está procesando tu petición, espera unos segundos.`}, {quoted: m})
-const query = text
-const prompt = `${basePrompt}. Responde lo siguiente: ${query}`
-const response = await luminsesi(query, username, prompt)
-await conn.sendMessage(m.chat, {text: response, edit: key})
-await m.react(done)
-} catch {
-await m.react(error)
-await conn.reply(m.chat, '✘ ChatGpT no puede responder a esa pregunta.', m)}}}
+const botname = 'Luminai';
+const etiqueta = 'Lumina Team';
+const vs = '2.0';
+const emoji = '❀';
+const emoji2 = '⏳';
+const rwait = '🕒';
+const done = '✅';
+const error = '❌';
+const msm = '[!]';
 
-handler.help = ['ia', 'chatgpt']
-handler.tags = ['ai']
-handler.register = true
-handler.command = ['ia', 'chatgpt', 'luminai']
-handler.group = true
+const handler = async (m, { conn, usedPrefix, command, text }) => {
+    const username = conn.getName(m.sender);
+    const basePrompt = `Eres ${botname}, creado por ${etiqueta} (v${vs}). Hablas español. Usa el nombre "${username}" al responder. Sé amable, divertido y educativo.`;
 
-export default handler
+    if (m.quoted?.mimetype?.startsWith('image/')) {
+        try {
+            await m.react(rwait);
+            const img = await m.quoted.download();
+            if (!img) throw new Error('No se pudo descargar la imagen');
+            
+            const imageAnalysis = await analyzeImage(img);
+            const response = await generateResponse(
+                `Describe esta imagen en detalle: ${imageAnalysis}`,
+                username,
+                `${basePrompt} Eres experto en análisis visual.`
+            );
+            
+            await conn.reply(m.chat, `${emoji} Descripción:\n${response}`, m);
+            await m.react(done);
+        } catch (e) {
+            console.error(msm, e);
+            await m.react(error);
+            await conn.reply(m.chat, 'Error al analizar la imagen', m);
+        }
+    } else if (text) {
+        try {
+            await m.react(rwait);
+            const { key } = await conn.sendMessage(
+                m.chat, 
+                { text: `${emoji2} Procesando tu consulta...` }, 
+                { quoted: m }
+            );
+            
+            const response = await generateResponse(text, username, basePrompt);
+            
+            await conn.sendMessage(
+                m.chat, 
+                { text: `${emoji} ${response}`, edit: key }
+            );
+            await m.react(done);
+        } catch (e) {
+            console.error(msm, e);
+            await m.react(error);
+            await conn.reply(m.chat, 'Error al generar respuesta', m);
+        }
+    } else {
+        await conn.reply(
+            m.chat, 
+            `${emoji} Usa:\n${usedPrefix}${command} [texto]\nO responde a una imagen`, 
+            m
+        );
+    }
+};
 
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
+async function analyzeImage(imageBuffer) {
+    const response = await axios.post('https://api.luminai.ai/analyze', {
+        image: imageBuffer.toString('base64')
+    }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 30000
+    });
+    return response.data?.result || 'No se pudo analizar la imagen';
+}
 
-// Función para enviar una imagen y obtener el análisis
-async function fetchImageBuffer(content, imageBuffer) {
-try {
-const response = await axios.post('https://Luminai.my.id', {
-content: content,
-imageBuffer: imageBuffer 
-}, {
-headers: {
-'Content-Type': 'application/json' 
-}})
-return response.data
-} catch (error) {
-console.error('Error:', error)
-throw error }}
-// Función para interactuar con la IA usando prompts
-async function luminsesi(q, username, logic) {
-try {
-const response = await axios.post("https://Luminai.my.id", {
-content: q,
-user: username,
-prompt: logic,
-webSearchMode: false
-})
-return response.data.result
-} catch (error) {
-console.error(`${msm} Error al obtener:`, error)
-throw error }}
+async function generateResponse(query, user, context) {
+    const response = await axios.post('https://api.luminai.ai/chat', {
+        query,
+        user,
+        context,
+        options: { webSearch: false }
+    }, {
+        timeout: 30000
+    });
+    return response.data?.result || 'No se pudo generar respuesta';
+}
+
+handler.help = ['ia <texto>', 'chatgpt <texto>'];
+handler.tags = ['ai'];
+handler.command = ['ia', 'chatgpt', 'luminai'];
+handler.group = true;
+handler.register = true;
+
+export default handler;
