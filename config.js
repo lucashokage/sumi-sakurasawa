@@ -45,6 +45,7 @@ global.done = '✅'
 global.error = '❌' 
 global.xmoji = '🔥' 
 global.moneda = 'coin'
+global.txt = 'sumi sakurasawa'
 
 global.multiplier = 69 
 global.maxwarn = '2' 
