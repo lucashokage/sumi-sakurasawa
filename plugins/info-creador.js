@@ -41,9 +41,6 @@ let handler = async (m, { conn, usedPrefix, text, args, command }) => {
         quoted: m
     });
 
-    await conn.sendMessage(m.chat, { text: txt });
-};
-
 handler.help = ['owner', 'creator'];
 handler.tags = ['main'];
 handler.command = ['owner', 'creator', 'creador', 'dueño'];
