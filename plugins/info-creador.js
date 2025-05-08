@@ -3,7 +3,6 @@ import fetch from 'node-fetch';
 let handler = async (m, { conn, usedPrefix, text, args, command }) => {
     await m.react('👑');
 
-   
     if (!['owner', 'creator', 'creador', 'dueño'].includes(command.toLowerCase())) {
         return conn.sendMessage(m.chat, { text: `El comando ${command} no existe.` });
     }
@@ -30,7 +29,7 @@ let handler = async (m, { conn, usedPrefix, text, args, command }) => {
             externalAdReply: {
                 showAdAttribution: true,
                 title: 'һ᥆ᥣᥲ ᥴ᥆ᥒ𝗍ᥲᥴ𝗍᥆ ძᥱ mі ᥴrᥱᥲძ᥆r👑',
-                body: dev,
+                body: 'WillZek',
                 thumbnailUrl: imageUrl,
                 sourceUrl: 'https://github.com/WillZek',
                 mediaType: 1,
@@ -40,6 +39,7 @@ let handler = async (m, { conn, usedPrefix, text, args, command }) => {
     }, {
         quoted: m
     });
+} // Esta llave de cierre faltaba
 
 handler.help = ['owner', 'creator'];
 handler.tags = ['main'];
