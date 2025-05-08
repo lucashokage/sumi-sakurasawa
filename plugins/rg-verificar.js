@@ -51,7 +51,6 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
   regbot += `> • ✰ *Experiencia* » ${expReward}\n`
   regbot += `> • ❖ *Tokens* » ${tokenReward}\n`
   regbot += `•┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄•\n`
-  regbot += `leonel`
 
   await m.react("📩")
 
@@ -62,7 +61,7 @@ const handler = async (m, { conn, text, usedPrefix, command }) => {
       contextInfo: {
         externalAdReply: {
           title: "✧ Usuario Verificado ✧",
-          body: textbot,
+          body: "✦⏤͟͟͞͞ sumi sakurasawa ⏤͟͟͞͞✦",
           thumbnailUrl: pp,
           sourceUrl: pp,
           mediaType: 1,
