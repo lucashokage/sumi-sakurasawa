@@ -43,7 +43,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
 │• *Activada ›* ${uptime}
 ╰╶͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜╴✧╶͜─ׄ͜─ׄ֟፝͜─ׄ͜─ׄ͜╴✧╶͜─ׄ͜─ׄ֟፝͜
 
-✐; *❀*→ ᴘᴀʀᴀ ᴄʀᴇᴀʀ ᴜɴ sᴜʙ-ʙᴏᴛ ᴄᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ ᴜᴛɪʟɪᴢᴀ *#qr* o *#code*`
+✐; *❀*→ ᴘᴀʀᴀ ᴄʀᴇᴀʀ ᴜɴ sᴜʙ-ʙᴏᴛ ᴄᴏɴ ᴛᴜ ɴᴜᴍᴇʀᴏ ᴜᴛɪʟɪᴢᴀ *#code*`
 
     menu += generateSection("SETLOGO", [
       { cmd: "#setlogo banner", desc: "cambia tu foto de menú" },
@@ -134,7 +134,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
             title: displayBotName,
             body: "Menú general",
             thumbnailUrl: bot.logo?.banner || "https://files.catbox.moe/k2hyt1.jpg",
-            sourceUrl: "https://files.catbox.moe/k2hyt1.jpg",
+            sourceUrl: "https://whatsapp.com",
             mediaType: 1,
             showAdAttribution: true,
             renderLargerThumbnail: true,
