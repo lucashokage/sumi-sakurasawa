@@ -13,15 +13,21 @@ let handler = async (m, { conn, args, text, command, usedPrefix, isOwner }) => {
     if (!text) {
         return m.reply(`🌲 Por favor especifica el nuevo nombre del bot.`);
     }
-global.db.data.settings[conn.user.jid].botName = text
-let cap = `
+
+    // Inicialización segura de la estructura de datos
+    if (!global.db.data.settings) global.db.data.settings = {};
+    if (!global.db.data.settings[conn.user.jid]) global.db.data.settings[conn.user.jid] = {};
+    
+    global.db.data.settings[conn.user.jid].botName = text;
+    
+    let cap = `
 ≡ 🌴 Se ha cambiado con éxito el nombre para @${conn.user.jid.split("@")[0]}
 
 🌿 Nuevo nombre : ${text}
 `;
-conn.reply(m.chat, cap, m, { mentions: conn.parseMention(cap)})
-
+    conn.reply(m.chat, cap, m, { mentions: conn.parseMention(cap) });
 }
+
 handler.tags = ["serbot"];
 handler.help = handler.command = ["setname"];
 export default handler;
