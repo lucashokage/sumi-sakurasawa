@@ -1,6 +1,3 @@
-import axios from "axios"
-import { lookup } from "country-code-lookup"
-
 const countryCache = new Map()
 
 export async function getCountryFromNumber(phoneNumber) {
@@ -10,37 +7,81 @@ export async function getCountryFromNumber(phoneNumber) {
     }
 
     const cleanNumber = phoneNumber.replace(/[^\d]/g, "")
+    
+    // Mapeo directo de códigos de país
+    const countryCodes = {
+      "1": "Estados Unidos",
+      "52": "México",
+      "51": "Perú",
+      "57": "Colombia",
+      "56": "Chile",
+      "54": "Argentina",
+      "591": "Bolivia",
+      "593": "Ecuador",
+      "595": "Paraguay",
+      "598": "Uruguay",
+      "58": "Venezuela",
+      "34": "España",
+      "55": "Brasil",
+      "502": "Guatemala",
+      "503": "El Salvador",
+      "504": "Honduras",
+      "505": "Nicaragua",
+      "506": "Costa Rica",
+      "507": "Panamá",
+      "809": "República Dominicana",
+      "1787": "Puerto Rico",
+      "53": "Cuba",
+      "49": "Alemania",
+      "33": "Francia",
+      "44": "Reino Unido",
+      "39": "Italia",
+      "351": "Portugal",
+      "7": "Rusia",
+      "81": "Japón",
+      "86": "China",
+      "91": "India",
+      "62": "Indonesia",
+      "60": "Malasia",
+      "65": "Singapur",
+      "66": "Tailandia",
+      "84": "Vietnam",
+      "61": "Australia",
+      "64": "Nueva Zelanda",
+      "27": "Sudáfrica",
+      "20": "Egipto",
+      "212": "Marruecos",
+      "234": "Nigeria",
+      "254": "Kenia",
+      "971": "Emiratos Árabes Unidos",
+      "966": "Arabia Saudita",
+      "90": "Turquía",
+      "92": "Pakistán",
+      "880": "Bangladesh"
+    }
 
-    if (cleanNumber.startsWith("1")) return "Estados Unidos"
-    if (cleanNumber.startsWith("52")) return "México"
-    if (cleanNumber.startsWith("51")) return "Perú"
-    if (cleanNumber.startsWith("57")) return "Colombia"
-    if (cleanNumber.startsWith("56")) return "Chile"
-    if (cleanNumber.startsWith("54")) return "Argentina"
-    if (cleanNumber.startsWith("591")) return "Bolivia"
-    if (cleanNumber.startsWith("593")) return "Ecuador"
-    if (cleanNumber.startsWith("595")) return "Paraguay"
-    if (cleanNumber.startsWith("598")) return "Uruguay"
-    if (cleanNumber.startsWith("58")) return "Venezuela"
-    if (cleanNumber.startsWith("34")) return "España"
-
-    try {
-      const response = await axios.get(`https://ipapi.co/${cleanNumber}/country_name/`)
-      if (response.data && typeof response.data === "string" && !response.data.includes("Error")) {
-        countryCache.set(phoneNumber, response.data)
-        return response.data
+    // Comprobar códigos de 3 dígitos primero
+    for (const [code, country] of Object.entries(countryCodes)) {
+      if (code.length === 3 && cleanNumber.startsWith(code)) {
+        countryCache.set(phoneNumber, country)
+        return country
       }
-    } catch (e) {}
-
-    for (let i = 1; i <= 3; i++) {
-      const countryCode = cleanNumber.substring(0, i)
-      try {
-        const country = lookup.byPhone("+" + countryCode)
-        if (country) {
-          countryCache.set(phoneNumber, country.country)
-          return country.country
-        }
-      } catch (e) {}
+    }
+    
+    // Luego comprobar códigos de 2 dígitos
+    for (const [code, country] of Object.entries(countryCodes)) {
+      if (code.length === 2 && cleanNumber.startsWith(code)) {
+        countryCache.set(phoneNumber, country)
+        return country
+      }
+    }
+    
+    // Finalmente comprobar códigos de 1 dígito
+    for (const [code, country] of Object.entries(countryCodes)) {
+      if (code.length === 1 && cleanNumber.startsWith(code)) {
+        countryCache.set(phoneNumber, country)
+        return country
+      }
     }
 
     return "Desconocido"
