@@ -33,7 +33,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
 > _Hola @${userId.split("@")[0]}, bienvenido/a al menú de @${displayBotName}_
 
 ╭┈ ↷
-│➮ *Tipo ›* ${botType === "official" ? "prem Bot🅢" : "subBot"} 
+│➮ *Tipo ›* ${botType === "official" : "subBot"} 
 │✧ *Versión ›* ^1.0.0
 │❖ *Plugins ›* ${pluginsCount}
 │
