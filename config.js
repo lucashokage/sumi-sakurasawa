@@ -45,7 +45,7 @@ global.dmoji = '🤭'
 global.done = '✅'
 global.error = '❌' 
 global.xmoji = '🔥' 
-global.coin = 'coins'
+global.coin = 'coin'
 
 global.multiplier = 69 
 global.maxwarn = '2' 
