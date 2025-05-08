@@ -31,6 +31,10 @@ global.fgsc = 'https://github.com/'
 global.fgyt = 'https://youtube.com/'
 global.fgpyp = 'https://paypal.me/'
 global.fglog = 'https://files.catbox.moe/o24klh.png' 
+global.dev = 'leonel'
+global.ofcbot = `${conn.user.jid.split('@')[0]}`
+global.asistencia = 'Wa.me/2348030943459'
+global.botname = '=͟͟͞❀ sᥙmі - sᥲkᥙrᥲsᥲᥕᥲ  ⏤͟͟͞͞★'
 
 
 global.id_canal = '120363324350463849@newsletter'
