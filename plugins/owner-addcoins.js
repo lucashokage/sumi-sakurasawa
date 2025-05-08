@@ -10,55 +10,33 @@ let handler = async (m, { conn, text }) => {
             who = m.mentionedJid[0];
         } else {
             const quoted = m.quoted ? m.quoted.sender : null;
-            who = quoted ? quoted : m.sender;
+            who = quoted ? quoted : m.chat;
         }
     } else {
-        who = m.sender;
+        who = m.chat;
     }
     
-    if (!who) throw '❌ Por favor, menciona al usuario o responde a un mensaje.';
+    if (!who) return m.reply(`${emoji} Por favor, menciona al usuario o cita un mensaje.`);
     
     let txt = text.replace('@' + who.split`@`[0], '').trim();
-    if (!txt) throw '❌ Ingresa la cantidad que deseas añadir.';
-    if (isNaN(txt)) throw '❌ Solo se permiten números.';
+    if (!txt) return m.reply(`${emoji} Por favor, ingresa la cantidad que deseas añadir.`);
+    if (isNaN(txt)) return m.reply(`${emoji2} sólo números.`);
     
     let dmt = parseInt(txt);
-    if (dmt < 1) throw '❌ La cantidad mínima es 1.';
-
-    if (!global.db.data.users[who]) {
-        global.db.data.users[who] = {
-            exp: 0,
-            coin: 0,
-            diamond: 20,
-            bank: 0,
-            lastclaim: 0,
-            registered: false,
-            name: conn.getName(who),
-            age: -1,
-            regTime: -1,
-            afk: -1,
-            afkReason: "",
-            banned: false,
-            warn: 0,
-            level: 0,
-            role: "Novato",
-            autolevelup: false,
-            chatbot: false,
-            genero: "Indeciso",
-            language: "es",
-            prem: false,
-            premiumTime: 0,
-            namebebot: "",
-            isbebot: false
-        };
-    }
-
-    global.db.data.users[who].coin += dmt;
+    let coin = dmt;
+    let pjk = Math.ceil(dmt * impts);
+    coin += pjk;
     
-    m.reply(`💸 *Añadido:*\n» ${dmt} coins\n@${who.split('@')[0]}, recibiste ${dmt} 💸`, null, { mentions: [who] });
+    if (coin < 1) return m.reply(`${emoji2} Mínimo es *1*`);
+    
+    let users = global.db.data.users;
+    users[who].coin += dmt;
+    
+    m.reply(`💸 *Añadido:*
+» ${dmt} \n@${who.split('@')[0]}, recibiste ${dmt} 💸`, null, { mentions: [who] });
 };
 
-handler.help = ['addcoins @usuario <cantidad>'];
+handler.help = ['addcoins *<@user>*'];
 handler.tags = ['owner'];
 handler.command = ['añadircoin', 'addcoin', 'addcoins']; 
 handler.rowner = true;
