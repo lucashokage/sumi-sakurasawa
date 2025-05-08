@@ -28,7 +28,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     const country = getCountryFromNumber(m.sender.split("@")[0])
 
     // Construir el menú
-    let menu = `ׄ    ִ ⏝︶ ׄ   ⋆   ׄ ︶⏝ ִ    ׄ  
+    let menu = `ׄ  ᷼ᮬ︵۪۪۪۪۪᷼⏜ᩘ۪۪۪᷼⏜  ׅ   ׄ🍁ᩧ᳞ ׄ   ׅ  ⏜᷼ᩘ۪۪۪۪⏜۪۪۪۪۪᷼︵᷼  
 
 > _Hola @${userId.split("@")[0]}, bienvenido/a al menú de @${displayBotName}_
 
