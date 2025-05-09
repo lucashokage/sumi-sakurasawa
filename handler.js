@@ -530,18 +530,40 @@ export async function groupsUpdate(groupsUpdate) {
   }
 }
 
+export async function deleteUpdate(message) {
+  try {
+    const { fromMe, id, participant } = message
+    if (fromMe) return
+    let msg = this.mssg[id]
+    if (!msg) return
+    let chat = global.db.data.chats[msg.chat] || {}
+    if (chat.delete) return
+    await this.reply(
+      msg.chat,
+      `=͟͟͞❀ 🗑️ Mensaje eliminado detectado ⏤͟͟͞͞★
+      
+*Número:* @${participant.split`@`[0]}`, 
+      msg, 
+      { mentions: [participant] }
+    )
+    this.copyNForward(msg.chat, msg, false).catch(e => console.error(e))
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 global.dfail = (type, m, conn) => {
   const msg = {
-    rowner: `=͟͟͞❀ 👑 ¡Eres el dueño principal del bot con máximos privilegios! ⏤͟͟͞͞★`,
-    owner: `=͟͟͞❀ 🔱 Tienes acceso completo a todos los comandos del bot. ⏤͟͟͞͞★`,
-    mods: `=͟͟͞❀ 🔰 Puedes usar comandos de administración y moderación. ⏤͟͟͞͞★`,
-    premium: `=͟͟͞❀ 💎 Disfruta de beneficios exclusivos como usuario premium. ⏤͟͟͞͞★`,
-    group: `=͟͟͞❀ ⚙️ Este comando solo funciona en chats grupales. ⏤͟͟͞͞★`,
-    private: `=͟͟͞❀ 📮 Este comando solo funciona en chats privados. ⏤͟͟͞͞★`,
-    admin: `=͟͟͞❀ 🛡️ Necesitas ser admin del grupo para esto. ⏤͟͟͞͞★`,
-    botAdmin: `=͟͟͞❀ 🤖 El bot necesita ser admin para esta acción. ⏤͟͟͞͞★`,
-    unreg: `=͟͟͞❀ 📇 Por favor regístrate primero con /register. ⏤͟͟͞͞★`,
-    restrict: `=͟͟͞❀ 🔐 Esta función está deshabilitada actualmente. ⏤͟͟͞͞★`
+rowner: `《✧》El comando *${comando}* solo puede ser usado por los creadores del bot.`, 
+owner: `《✧》El comando *${comando}* solo puede ser usado por los desarrolladores del bot.`, 
+mods: `《✧》El comando *${comando}* solo puede ser usado por los moderadores del bot.`, 
+premium: `《✧》El comando *${comando}* solo puede ser usado por los usuarios premium.`, 
+group: `《✧》El comando *${comando}* solo puede ser usado en grupos.`,
+private: `《✧》El comando *${comando}* solo puede ser usado al chat privado del bot.`,
+admin: `《✧》El comando *${comando}* solo puede ser usado por los administradores del grupo.`, 
+botAdmin: `《✧》Para ejecutar el comando *${comando}* debo ser administrador del grupo.`,
+unreg: `《✧》El comando *${comando}* solo puede ser usado por los usuarios registrado, registrate usando:\n> » #${verifyaleatorio} ${user2}.${edadaleatoria}`,
+restrict: `《✧》Esta caracteristica está desactivada.`
 }[type]
 
 if (msg) return m.reply(msg)
@@ -557,7 +579,7 @@ export async function reloadHandler() {
       if (oldHandler.handler) global.conn.ev.off('messages.upsert', oldHandler.handler)
       if (oldHandler.participantsUpdate) global.conn.ev.off('group-participants.update', oldHandler.participantsUpdate)
       if (oldHandler.groupsUpdate) global.conn.ev.off('groups.update', oldHandler.groupsUpdate)
-      if (oldHandler.onCall) global.conn.ev.off('call', oldHandler.onCall)
+      if (oldHandler.deleteUpdate) global.conn.ev.off('message.delete', oldHandler.deleteUpdate)
       if (oldHandler.connectionUpdate) global.conn.ev.off('connection.update', oldHandler.connectionUpdate)
       if (oldHandler.credsUpdate) global.conn.ev.off('creds.update', oldHandler.credsUpdate)
     } catch (e) {
@@ -567,12 +589,14 @@ export async function reloadHandler() {
     global.conn.handler = handler.handler
     global.conn.participantsUpdate = handler.participantsUpdate
     global.conn.groupsUpdate = handler.groupsUpdate
+    global.conn.deleteUpdate = handler.deleteUpdate
     global.conn.connectionUpdate = handler.connectionUpdate
     global.conn.credsUpdate = handler.credsUpdate
     
     global.conn.ev.on('messages.upsert', global.conn.handler)
     global.conn.ev.on('group-participants.update', global.conn.participantsUpdate)
     global.conn.ev.on('groups.update', global.conn.groupsUpdate)
+    global.conn.ev.on('message.delete', global.conn.deleteUpdate)
     global.conn.ev.on('connection.update', global.conn.connectionUpdate)
     global.conn.ev.on('creds.update', global.conn.credsUpdate)
     
