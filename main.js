@@ -18,7 +18,10 @@ import pino from "pino"
 import { mongoDB, mongoDBV2 } from "./lib/mongoDB.js"
 import store from "./lib/store.js"
 import { EventEmitter } from "events"
+// Import correctly - either as named export or default export
 import { cloudDBAdapter } from "./lib/cloudDBAdapter.js"
+// Alternatively, you could use:
+// import cloudDBAdapter from "./lib/cloudDBAdapter.js"
 
 // Increase max listeners to prevent warnings
 EventEmitter.defaultMaxListeners = 25
