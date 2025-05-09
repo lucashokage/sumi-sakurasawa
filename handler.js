@@ -16,7 +16,6 @@ const delay = (ms) =>
     }, ms),
   )
 
-// Declarations for missing variables
 global.opts = global.opts || {}
 global.conn = global.conn || {}
 global.loadDatabase = global.loadDatabase || (() => {})
@@ -482,7 +481,6 @@ export async function participantsUpdate({ id, participants, action }) {
     }
   }
   
-  // Manejar acciones de promoción/degradación
   if (action === "promote" || action === "demote") {
     let text = ""
     if (action === "promote") {
