@@ -4,11 +4,14 @@ import path, { join } from "path"
 import { fileURLToPath, pathToFileURL } from "url"
 import { platform } from "process"
 import * as ws from "ws"
-import { readdirSync, statSync, unlinkSync, readFileSync } from "fs"
+import { readdirSync, statSync, unlinkSync, existsSync, readFileSync, watch } from "fs"
 import yargs from "yargs"
+import { spawn } from "child_process"
 import lodash from "lodash"
 import chalk from "chalk"
+import syntaxerror from "syntax-error"
 import { tmpdir } from "os"
+import { format } from "util"
 import { makeWASocket, protoType, serialize } from "./lib/simple.js"
 import { Low, JSONFile } from "lowdb"
 import pino from "pino"
@@ -17,6 +20,7 @@ import store from "./lib/store.js"
 import { EventEmitter } from "events"
 import { cloudDBAdapter } from "./lib/cloudDBAdapter.js"
 
+// Increase max listeners to prevent warnings
 EventEmitter.defaultMaxListeners = 25
 
 const {
@@ -160,7 +164,6 @@ if (!methodCodeQR && !methodCode && !fs.existsSync(`./${global.authFile}/creds.j
 
 console.info = () => {}
 
-let conn
 const connectionOptions = {
   logger: pino({ level: "silent" }),
   printQRInTerminal: opcion === "1" || methodCodeQR,
@@ -195,7 +198,7 @@ global.conn = makeWASocket(connectionOptions)
 if (!fs.existsSync(`./${global.authFile}/creds.json`)) {
   if (opcion === "2" || methodCode) {
     opcion = "2"
-    if (!conn.authState.creds.registered) {
+    if (!global.conn.authState.creds.registered) {
       if (MethodMobile) throw new Error("⚠️ Se produjo un Error en la API de movil")
 
       let addNumber
@@ -222,7 +225,7 @@ if (!fs.existsSync(`./${global.authFile}/creds.json`)) {
       }
 
       setTimeout(async () => {
-        let codeBot = await conn.requestPairingCode(addNumber)
+        let codeBot = await global.conn.requestPairingCode(addNumber)
         codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
         console.log(chalk.yellow("\n\n🍏 introduce el código en WhatsApp."))
         console.log(chalk.black(chalk.bgGreen(`\n🟣 Su Código es: `)), chalk.black(chalk.red(codeBot)))
@@ -231,7 +234,7 @@ if (!fs.existsSync(`./${global.authFile}/creds.json`)) {
   }
 }
 
-conn.isInit = false
+global.conn.isInit = false
 
 if (!global.opts["test"]) {
   setInterval(async () => {
@@ -265,9 +268,9 @@ setInterval(async () => {
 
 async function connectionUpdate(update) {
   const { connection, lastDisconnect, isNewLogin } = update
-  if (isNewLogin) conn.isInit = true
+  if (isNewLogin) global.conn.isInit = true
   const code = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.output?.payload?.statusCode
-  if (code && code !== DisconnectReason.loggedOut && conn?.ws.socket == null) {
+  if (code && code !== DisconnectReason.loggedOut && global.conn?.ws.socket == null) {
     console.log(await global.reloadHandler(true).catch(console.error))
     global.timestamp.connect = new Date()
   }
@@ -277,25 +280,199 @@ async function connectionUpdate(update) {
 
 process.on("uncaughtException", console.error)
 
-const isInit = true
+let isInit = true
 let handler = await import("./handler.js")
 
 global.reloadHandler = async (restartConn) => {
+  try {
+    // Limpiar todos los listeners existentes
+    if (global.conn.ev) {
+      global.conn.ev.removeAllListeners("messages.upsert")
+      global.conn.ev.removeAllListeners("group-participants.update")
+      global.conn.ev.removeAllListeners("groups.update")
+      global.conn.ev.removeAllListeners("message.delete")
+      global.conn.ev.removeAllListeners("connection.update")
+      global.conn.ev.removeAllListeners("creds.update")
+    }
+
+    // Recargar el handler
+    const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error)
+    if (Object.keys(Handler || {}).length) {
+      handler = Handler
+    }
+
+    // Reiniciar conexión si es necesario
+    if (restartConn) {
+      const oldChats = global.conn.chats
+      try {
+        global.conn.ws.close()
+      } catch (e) {
+        console.error(e)
+      }
+      global.conn = makeWASocket(connectionOptions, { chats: oldChats })
+      isInit = true
+    }
+
+    // Configurar handlers solo si existen
+    const setupHandler = (eventName, handlerName) => {
+      if (handler[handlerName] && typeof handler[handlerName] === "function") {
+        global.conn[handlerName] = handler[handlerName].bind(global.conn)
+        global.conn.ev.on(eventName, global.conn[handlerName])
+        return true
+      }
+      // Proporcionar un handler vacío como fallback
+      global.conn[handlerName] = () => {}
+      global.conn.ev.on(eventName, global.conn[handlerName])
+      console.log(`Handler ${handlerName} no encontrado o no es una función, usando handler vacío por defecto`)
+      return false
+    }
+
+    setupHandler("messages.upsert", "handler")
+    setupHandler("group-participants.update", "participantsUpdate")
+    setupHandler("groups.update", "groupsUpdate")
+    setupHandler("message.delete", "deleteUpdate")
+
+    // Handlers obligatorios
+    global.conn.connectionUpdate = connectionUpdate.bind(global.conn)
+    global.conn.credsUpdate = saveCreds.bind(global.conn, true)
+
+    global.conn.ev.on("connection.update", global.conn.connectionUpdate)
+    global.conn.ev.on("creds.update", global.conn.credsUpdate)
+
+    isInit = false
+    return true
+  } catch (e) {
+    console.error("Error en reloadHandler:", e)
+    return false
+  }
+}
+
+// Configuración inicial de handlers
+global.conn.welcome = "Hola, @user\nBienvenido a @group"
+global.conn.bye = "adiós @user"
+global.conn.spromote = "@user promovió a admin"
+global.conn.sdemote = "@user degradado"
+global.conn.sDesc = "La descripción ha sido cambiada a \n@desc"
+global.conn.sSubject = "El nombre del grupo ha sido cambiado a \n@group"
+global.conn.sIcon = "El icono del grupo ha sido cambiado"
+global.conn.sRevoke = "El enlace del grupo ha sido cambiado a \n@revoke"
+
+// Carga de plugins
+const pluginFolder = global.__dirname(join(__dirname, "./plugins/index"))
+const pluginFilter = (filename) => /\.js$/.test(filename)
+global.plugins = {}
+
+async function filesInit() {
+  for (const filename of readdirSync(pluginFolder).filter(pluginFilter)) {
     try {
-        if (conn.ev) {
-            conn.ev.removeAllListeners('messages.upsert');
-            conn.ev.removeAllListeners('group-participants.update');
-            conn.ev.removeAllListeners('groups.update');
-            conn.ev.removeAllListeners('message.delete');
-            conn.ev.removeAllListeners('connection.update');
-            conn.ev.removeAllListeners('creds.update');
-        }
+      const file = global.__filename(join(pluginFolder, filename))
+      const module = await import(file)
+      global.plugins[filename] = module.default || module
+    } catch (e) {
+      global.conn.logger.error(e)
+      delete global.plugins[filename]
+    }
+  }
+}
 
-        const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
-        if (Object.keys(Handler || {}).length) {
-            handler = Handler;
-        }
+filesInit()
+  .then((_) => console.log(Object.keys(global.plugins)))
+  .catch(console.error)
 
-        if (restartConn) {
-            const oldChats = global.conn.chats;
-            try { global.conn.ws.close(); } catch\
+global.reload = async (_ev, filename) => {
+  if (pluginFilter(filename)) {
+    const dir = global.__filename(join(pluginFolder, filename), true)
+    if (filename in global.plugins) {
+      if (existsSync(dir)) global.conn.logger.info(`🌟 Plugin Actualizado - '${filename}'`)
+      else {
+        global.conn.logger.warn(`🗑️ Plugin Eliminado - '${filename}'`)
+        return delete global.plugins[filename]
+      }
+    } else global.conn.logger.info(`✨ Nuevo plugin - '${filename}'`)
+
+    const err = syntaxerror(readFileSync(dir), filename, {
+      sourceType: "module",
+      allowAwaitOutsideFunction: true,
+    })
+
+    if (err) global.conn.logger.error(`syntax error while loading '${filename}'\n${format(err)}`)
+    else
+      try {
+        const module = await import(`${global.__filename(dir)}?update=${Date.now()}`)
+        global.plugins[filename] = module.default || module
+      } catch (e) {
+        global.conn.logger.error(`error require plugin '${filename}\n${format(e)}'`)
+      } finally {
+        global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)))
+      }
+  }
+}
+
+Object.freeze(global.reload)
+watch(pluginFolder, global.reload)
+await global.reloadHandler()
+
+// Quick Test
+async function _quickTest() {
+  const test = await Promise.all(
+    [
+      spawn("ffmpeg"),
+      spawn("ffprobe"),
+      spawn("ffmpeg", [
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-filter_complex",
+        "color",
+        "-frames:v",
+        "1",
+        "-f",
+        "webp",
+        "-",
+      ]),
+      spawn("convert"),
+      spawn("magick"),
+      spawn("gm"),
+      spawn("find", ["--version"]),
+    ].map((p) => {
+      return Promise.race([
+        new Promise((resolve) => {
+          p.on("close", (code) => {
+            resolve(code !== 127)
+          })
+        }),
+        new Promise((resolve) => {
+          p.on("error", (_) => resolve(false))
+        }),
+      ])
+    }),
+  )
+
+  const [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test
+  console.log(test)
+  const s = (global.support = {
+    ffmpeg,
+    ffprobe,
+    ffmpegWebp,
+    convert,
+    magick,
+    gm,
+    find,
+  })
+
+  Object.freeze(global.support)
+
+  if (!s.ffmpeg) global.conn.logger.warn("Please install ffmpeg for sending videos (pkg install ffmpeg)")
+  if (s.ffmpeg && !s.ffmpegWebp)
+    global.conn.logger.warn(
+      "Stickers may not animated without libwebp on ffmpeg (--enable-ibwebp while compiling ffmpeg)",
+    )
+  if (!s.convert && !s.magick && !s.gm)
+    global.conn.logger.warn(
+      "Stickers may not work without imagemagick if libwebp on ffmpeg doesnt isntalled (pkg install imagemagick)",
+    )
+}
+
+_quickTest()
+  .then(() => global.conn.logger.info("✅ Prueba rápida realizado!"))
+  .catch(console.error)
