@@ -446,21 +446,21 @@ export async function participantsUpdate({ id, participants, action }) {
   if (opts["self"]) return
   if (global.db.data == null) await loadDatabase()
   const chat = global.db.data.chats[id] || {}
-  
+
   // Solo procesar si welcome está habilitado y es una acción de añadir/eliminar
   if (chat.welcome && (action === "add" || action === "remove")) {
     const groupMetadata = (await this.groupMetadata(id)) || (conn.chats[id] || {}).metadata
-    
+
     // Usar un Set para rastrear usuarios procesados y evitar duplicados
     const processedUsers = new Set()
-    
+
     for (const user of participants) {
       // Omitir si este usuario ya ha sido procesado
       if (processedUsers.has(user)) continue
-      
+
       // Marcar usuario como procesado
       processedUsers.add(user)
-      
+
       try {
         // Importar y usar el plugin de bienvenida
         const welcomePlugin = await import("./plugins/_welcome.js")
@@ -485,7 +485,7 @@ export async function participantsUpdate({ id, participants, action }) {
       }
     }
   }
-  
+
   // Manejar acciones de promoción/degradación
   if (action === "promote" || action === "demote") {
     let text = ""
@@ -494,7 +494,7 @@ export async function participantsUpdate({ id, participants, action }) {
     } else {
       text = chat.sDemote || this.sdemote || conn.sdemote || "=͟͟͞❀ @user 𝙮𝙖 𝙣𝙤 𝙚𝙨 𝙖𝙙𝙢𝙞𝙣𝙞𝙨𝙩𝙧𝙖𝙙𝙤𝙧 ⏤͟͟͞͞★"
     }
-    
+
     const pp = await this.profilePictureUrl(participants[0], "image").catch((_) => "./src/avatar.jpg")
     text = text.replace("@user", "@" + participants[0].split("@")[0])
     if (chat.detect) this.sendFile(id, pp, "pp.jpg", text, null, false, { mentions: this.parseMention(text) })
@@ -536,6 +536,32 @@ export async function groupsUpdate(groupsUpdate) {
   }
 }
 
+// Implementación del deleteUpdate que faltaba
+export async function deleteUpdate(message) {
+  try {
+    const { keys, jid } = message
+    if (!keys || !keys.length) return
+
+    // Registrar mensaje borrado
+    console.log(`Mensaje eliminado en ${jid}`)
+
+    // Si quieres recuperar el mensaje borrado:
+    // const deletedMessage = await store.loadMessage(jid, keys[0].id)
+    // if (deletedMessage) {
+    //   // Hacer algo con el mensaje eliminado
+    //   console.log('Contenido del mensaje eliminado:', deletedMessage.message)
+    // }
+
+    // Si quieres notificar en el chat que alguien borró un mensaje:
+    // const chat = global.db.data.chats[jid]
+    // if (chat && chat.delete) {
+    //   this.sendMessage(jid, { text: '⚠️ Se ha detectado un mensaje eliminado' })
+    // }
+  } catch (error) {
+    console.error("Error en deleteUpdate:", error)
+  }
+}
+
 global.dfail = (type, m, conn) => {
   const msg = {
     rowner: `=͟͟͞❀ 👑 ¡Eres el dueño principal del bot con máximos privilegios! ⏤͟͟͞͞★`,
@@ -547,46 +573,49 @@ global.dfail = (type, m, conn) => {
     admin: `=͟͟͞❀ 🛡️ Necesitas ser admin del grupo para esto. ⏤͟͟͞͞★`,
     botAdmin: `=͟͟͞❀ 🤖 El bot necesita ser admin para esta acción. ⏤͟͟͞͞★`,
     unreg: `=͟͟͞❀ 📇 Por favor regístrate primero con /register. ⏤͟͟͞͞★`,
-    restrict: `=͟͟͞❀ 🔐 Esta función está deshabilitada actualmente. ⏤͟͟͞͞★`
-}[type]
+    restrict: `=͟͟͞❀ 🔐 Esta función está deshabilitada actualmente. ⏤͟͟͞͞★`,
+  }[type]
 
-if (msg) return m.reply(msg)
+  if (msg) return m.reply(msg)
 }
 
 // Solución para el error de event listeners
 export async function reloadHandler() {
-  let handler = await import('./handler.js?update=' + Date.now())
+  const handler = await import("./handler.js?update=" + Date.now())
   if (Object.keys(handler || {}).length) {
     // Guardar referencias a los handlers actuales
     const oldHandler = { ...global.conn }
-    
+
     try {
       // Desconectar listeners actuales con seguridad
-      if (oldHandler.handler) global.conn.ev.off('messages.upsert', oldHandler.handler)
-      if (oldHandler.participantsUpdate) global.conn.ev.off('group-participants.update', oldHandler.participantsUpdate)
-      if (oldHandler.groupsUpdate) global.conn.ev.off('groups.update', oldHandler.groupsUpdate)
-      if (oldHandler.onCall) global.conn.ev.off('call', oldHandler.onCall)
-      if (oldHandler.connectionUpdate) global.conn.ev.off('connection.update', oldHandler.connectionUpdate)
-      if (oldHandler.credsUpdate) global.conn.ev.off('creds.update', oldHandler.credsUpdate)
+      if (oldHandler.handler) global.conn.ev.off("messages.upsert", oldHandler.handler)
+      if (oldHandler.participantsUpdate) global.conn.ev.off("group-participants.update", oldHandler.participantsUpdate)
+      if (oldHandler.groupsUpdate) global.conn.ev.off("groups.update", oldHandler.groupsUpdate)
+      if (oldHandler.deleteUpdate) global.conn.ev.off("message.delete", oldHandler.deleteUpdate)
+      if (oldHandler.onCall) global.conn.ev.off("call", oldHandler.onCall)
+      if (oldHandler.connectionUpdate) global.conn.ev.off("connection.update", oldHandler.connectionUpdate)
+      if (oldHandler.credsUpdate) global.conn.ev.off("creds.update", oldHandler.credsUpdate)
     } catch (e) {
-      console.error('Error al desconectar listeners:', e)
+      console.error("Error al desconectar listeners:", e)
     }
-    
+
     // Asignar nuevos handlers
     global.conn.handler = handler.handler
     global.conn.participantsUpdate = handler.participantsUpdate
     global.conn.groupsUpdate = handler.groupsUpdate
+    global.conn.deleteUpdate = handler.deleteUpdate
     global.conn.connectionUpdate = handler.connectionUpdate
     global.conn.credsUpdate = handler.credsUpdate
-    
+
     // Conectar nuevos listeners
-    global.conn.ev.on('messages.upsert', global.conn.handler)
-    global.conn.ev.on('group-participants.update', global.conn.participantsUpdate)
-    global.conn.ev.on('groups.update', global.conn.groupsUpdate)
-    global.conn.ev.on('connection.update', global.conn.connectionUpdate)
-    global.conn.ev.on('creds.update', global.conn.credsUpdate)
-    
-    console.log('✅ Handlers recargados correctamente')
+    global.conn.ev.on("messages.upsert", global.conn.handler)
+    global.conn.ev.on("group-participants.update", global.conn.participantsUpdate)
+    global.conn.ev.on("groups.update", global.conn.groupsUpdate)
+    global.conn.ev.on("message.delete", global.conn.deleteUpdate)
+    global.conn.ev.on("connection.update", global.conn.connectionUpdate)
+    global.conn.ev.on("creds.update", global.conn.credsUpdate)
+
+    console.log("✅ Handlers recargados correctamente")
   }
   return true
 }
