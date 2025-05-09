@@ -536,34 +536,6 @@ export async function groupsUpdate(groupsUpdate) {
   }
 }
 
-export async function deleteUpdate(message) {
-    try {
-        const { fromMe, id, participant } = message
-        if (fromMe)
-            return
-        let msg = this.serializeM(this.loadMessage(id))
-        if (!msg)
-            return
-        let chat = global.db.data.chats[msg.chat] || {}
-        if (chat.delete)
-            return
-        await this.reply(msg.chat, `
-≡ Borró un mensaje  
-┌─⊷  𝘼𝙉𝙏𝙄 𝘿𝙀𝙇𝙀𝙏𝙀 
-▢ *Nombre :* @${participant.split`@`[0]} 
-└─────────────
-Para desactivar esta función, escriba 
-/off antidelete
-.enable delete
-`.trim(), msg, {
-            mentions: [participant]
-        })
-        this.copyNForward(msg.chat, msg).catch(e => console.log(e, msg))
-    } catch (e) {
-        console.error(e)
-    }
-}
-
 global.dfail = (type, m, conn) => {
   const msg = {
     rowner: `=͟͟͞❀ 👑 ¡Eres el dueño principal del bot con máximos privilegios! ⏤͟͟͞͞★`,
