@@ -1,3 +1,4 @@
+//process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 import './config.js';
 import { createRequire } from "module";
 import path, { join } from 'path';
@@ -98,6 +99,7 @@ global.loadDatabase = async function loadDatabase() {
 
 loadDatabase();
 
+//-- SESSION
 global.authFile = `sessions`;
 const { state, saveState, saveCreds } = await useMultiFileAuthState(global.authFile);
 const msgRetryCounterMap = new Map();
@@ -239,6 +241,7 @@ let handler = await import('./handler.js');
 
 global.reloadHandler = async function (restartConn) {
     try {
+        // Limpiar todos los listeners existentes
         if (conn.ev) {
             conn.ev.removeAllListeners('messages.upsert');
             conn.ev.removeAllListeners('group-participants.update');
@@ -248,11 +251,13 @@ global.reloadHandler = async function (restartConn) {
             conn.ev.removeAllListeners('creds.update');
         }
 
+        // Recargar el handler
         const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
         if (Object.keys(Handler || {}).length) {
             handler = Handler;
         }
 
+        // Reiniciar conexión si es necesario
         if (restartConn) {
             const oldChats = global.conn.chats;
             try { global.conn.ws.close(); } catch (e) { console.error(e); }
@@ -260,6 +265,7 @@ global.reloadHandler = async function (restartConn) {
             isInit = true;
         }
 
+        // Configurar handlers solo si existen
         const setupHandler = (eventName, handlerName) => {
             if (handler[handlerName] && typeof handler[handlerName] === 'function') {
                 conn[handlerName] = handler[handlerName].bind(global.conn);
@@ -275,6 +281,7 @@ global.reloadHandler = async function (restartConn) {
         setupHandler('groups.update', 'groupsUpdate');
         setupHandler('message.delete', 'deleteUpdate');
 
+        // Handlers obligatorios
         conn.connectionUpdate = connectionUpdate.bind(global.conn);
         conn.credsUpdate = saveCreds.bind(global.conn, true);
         
@@ -289,6 +296,7 @@ global.reloadHandler = async function (restartConn) {
     }
 };
 
+// Configuración inicial de handlers
 conn.welcome = 'Hola, @user\nBienvenido a @group';
 conn.bye = 'adiós @user';
 conn.spromote = '@user promovió a admin';
@@ -298,6 +306,7 @@ conn.sSubject = 'El nombre del grupo ha sido cambiado a \n@group';
 conn.sIcon = 'El icono del grupo ha sido cambiado';
 conn.sRevoke = 'El enlace del grupo ha sido cambiado a \n@revoke';
 
+// Carga de plugins
 const pluginFolder = global.__dirname(join(__dirname, './plugins/index'));
 const pluginFilter = filename => /\.js$/.test(filename);
 global.plugins = {};
@@ -349,6 +358,7 @@ Object.freeze(global.reload);
 watch(pluginFolder, global.reload);
 await global.reloadHandler();
 
+// Quick Test
 async function _quickTest() {
     let test = await Promise.all([
         spawn('ffmpeg'),
