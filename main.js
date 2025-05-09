@@ -30,6 +30,18 @@ const {
     PHONENUMBER_MCC
 } = await import('@whiskeysockets/baileys');
 
+
+let COUNTRY_CODES;
+try {
+    const countryCodesPath = join(path.dirname(fileURLToPath(import.meta.url)), 'country-codes.json');
+    COUNTRY_CODES = JSON.parse(readFileSync(countryCodesPath, 'utf8'));
+} catch (error) {
+    console.error('Error al cargar country-codes.json:', error);
+    COUNTRY_CODES = {};
+}
+
+const phoneMCC = COUNTRY_CODES;
+
 import moment from 'moment-timezone';
 import NodeCache from 'node-cache';
 import readline from 'readline';
@@ -165,7 +177,7 @@ if (!fs.existsSync(`./${authFile}/creds.json`)) {
             let addNumber;
             if (!!phoneNumber) {
                 addNumber = phoneNumber.replace(/[^0-9]/g, '');
-                if (PHONENUMBER_MCC && !Object.keys(PHONENUMBER_MCC).some(v => addNumber.startsWith(v))) {
+                if (!Object.keys(phoneMCC).some(v => addNumber.startsWith(v))) {
                     console.log(chalk.bgBlack(chalk.bold.redBright("\n\n✴️ Su número debe comenzar con el codigo de pais")));
                     process.exit(0);
                 }
@@ -174,7 +186,7 @@ if (!fs.existsSync(`./${authFile}/creds.json`)) {
                     addNumber = await question(chalk.bgBlack(chalk.bold.greenBright("\n\n✳️ Escriba su numero\n\nEjemplo: 5491168xxxx\n\n")));
                     addNumber = addNumber.replace(/[^0-9]/g, '');
 
-                    if (addNumber.match(/^\d+$/) && PHONENUMBER_MCC && Object.keys(PHONENUMBER_MCC).some(v => addNumber.startsWith(v))) {
+                    if (addNumber.match(/^\d+$/) && Object.keys(phoneMCC).some(v => addNumber.startsWith(v))) {
                         break;
                     } else {
                         console.log(chalk.bgBlack(chalk.bold.redBright("\n\n✴️ Asegúrese de agregar el código de país")));
@@ -241,6 +253,7 @@ let handler = await import('./handler.js');
 
 global.reloadHandler = async function (restartConn) {
     try {
+        // Limpiar todos los listeners existentes
         if (conn.ev) {
             conn.ev.removeAllListeners('messages.upsert');
             conn.ev.removeAllListeners('group-participants.update');
@@ -250,11 +263,13 @@ global.reloadHandler = async function (restartConn) {
             conn.ev.removeAllListeners('creds.update');
         }
 
+        // Recargar el handler
         const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error);
         if (Object.keys(Handler || {}).length) {
             handler = Handler;
         }
 
+        // Reiniciar conexión si es necesario
         if (restartConn) {
             const oldChats = global.conn.chats;
             try { global.conn.ws.close(); } catch (e) { console.error(e); }
@@ -262,6 +277,7 @@ global.reloadHandler = async function (restartConn) {
             isInit = true;
         }
 
+        // Configurar handlers solo si existen
         const setupHandler = (eventName, handlerName) => {
             if (handler[handlerName] && typeof handler[handlerName] === 'function') {
                 conn[handlerName] = handler[handlerName].bind(global.conn);
@@ -277,6 +293,7 @@ global.reloadHandler = async function (restartConn) {
         setupHandler('groups.update', 'groupsUpdate');
         setupHandler('message.delete', 'deleteUpdate');
 
+        // Handlers obligatorios
         conn.connectionUpdate = connectionUpdate.bind(global.conn);
         conn.credsUpdate = saveCreds.bind(global.conn, true);
         
@@ -291,6 +308,7 @@ global.reloadHandler = async function (restartConn) {
     }
 };
 
+// Configuración inicial de handlers
 conn.welcome = 'Hola, @user\nBienvenido a @group';
 conn.bye = 'adiós @user';
 conn.spromote = '@user promovió a admin';
@@ -300,6 +318,7 @@ conn.sSubject = 'El nombre del grupo ha sido cambiado a \n@group';
 conn.sIcon = 'El icono del grupo ha sido cambiado';
 conn.sRevoke = 'El enlace del grupo ha sido cambiado a \n@revoke';
 
+// Carga de plugins
 const pluginFolder = global.__dirname(join(__dirname, './plugins/index'));
 const pluginFilter = filename => /\.js$/.test(filename);
 global.plugins = {};
@@ -351,6 +370,7 @@ Object.freeze(global.reload);
 watch(pluginFolder, global.reload);
 await global.reloadHandler();
 
+// Quick Test
 async function _quickTest() {
     let test = await Promise.all([
         spawn('ffmpeg'),
