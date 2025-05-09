@@ -536,8 +536,6 @@ export async function groupsUpdate(groupsUpdate) {
   }
 }
 
-
-/*
 export async function deleteUpdate(message) {
     try {
         const { fromMe, id, participant } = message
@@ -565,7 +563,6 @@ Para desactivar esta función, escriba
         console.error(e)
     }
 }
-*/
 
 global.dfail = (type, m, conn) => {
   const msg = {
