@@ -447,22 +447,18 @@ export async function participantsUpdate({ id, participants, action }) {
   if (global.db.data == null) await loadDatabase()
   const chat = global.db.data.chats[id] || {}
   
-  // Solo procesar si welcome está habilitado y es una acción de añadir/eliminar
   if (chat.welcome && (action === "add" || action === "remove")) {
     const groupMetadata = (await this.groupMetadata(id)) || (conn.chats[id] || {}).metadata
     
-    // Usar un Set para rastrear usuarios procesados y evitar duplicados
+    
     const processedUsers = new Set()
     
     for (const user of participants) {
-      // Omitir si este usuario ya ha sido procesado
       if (processedUsers.has(user)) continue
       
-      // Marcar usuario como procesado
       processedUsers.add(user)
       
       try {
-        // Importar y usar el plugin de bienvenida
         const welcomePlugin = await import("./plugins/_welcome.js")
         if (welcomePlugin && typeof welcomePlugin.before === "function") {
           await welcomePlugin.before.call(
@@ -553,7 +549,6 @@ global.dfail = (type, m, conn) => {
 if (msg) return m.reply(msg)
 }
 
-// Solución para el error de event listeners
 export async function reloadHandler() {
   let handler = await import('./handler.js?update=' + Date.now())
   if (Object.keys(handler || {}).length) {
@@ -561,7 +556,6 @@ export async function reloadHandler() {
     const oldHandler = { ...global.conn }
     
     try {
-      // Desconectar listeners actuales con seguridad
       if (oldHandler.handler) global.conn.ev.off('messages.upsert', oldHandler.handler)
       if (oldHandler.participantsUpdate) global.conn.ev.off('group-participants.update', oldHandler.participantsUpdate)
       if (oldHandler.groupsUpdate) global.conn.ev.off('groups.update', oldHandler.groupsUpdate)
@@ -572,14 +566,12 @@ export async function reloadHandler() {
       console.error('Error al desconectar listeners:', e)
     }
     
-    // Asignar nuevos handlers
     global.conn.handler = handler.handler
     global.conn.participantsUpdate = handler.participantsUpdate
     global.conn.groupsUpdate = handler.groupsUpdate
     global.conn.connectionUpdate = handler.connectionUpdate
     global.conn.credsUpdate = handler.credsUpdate
     
-    // Conectar nuevos listeners
     global.conn.ev.on('messages.upsert', global.conn.handler)
     global.conn.ev.on('group-participants.update', global.conn.participantsUpdate)
     global.conn.ev.on('groups.update', global.conn.groupsUpdate)
