@@ -18,19 +18,68 @@ import pino from "pino"
 import { mongoDB, mongoDBV2 } from "./lib/mongoDB.js"
 import store from "./lib/store.js"
 import { EventEmitter } from "events"
-// Import correctly - either as named export or default export
-import { cloudDBAdapter } from "./lib/cloudDBAdapter.js"
-// Alternatively, you could use:
-// import cloudDBAdapter from "./lib/cloudDBAdapter.js"
+import got from "got"
 
-// Increase max listeners to prevent warnings
 EventEmitter.defaultMaxListeners = 25
+
+const DEBUG_MODE = true
+if (DEBUG_MODE) {
+  process.on("unhandledRejection", (reason, promise) => {
+    console.error("Unhandled Rejection at:", promise, "reason:", reason)
+  })
+  process.on("uncaughtException", (error) => {
+    console.error("Uncaught Exception:", error)
+  })
+}
+
+class cloudDBAdapter {
+  constructor(url, { serialize = JSON.stringify, deserialize = JSON.parse, fetchOptions = {} } = {}) {
+    this.url = url
+    this.serialize = serialize
+    this.deserialize = deserialize
+    this.fetchOptions = fetchOptions
+  }
+
+  async read() {
+    try {
+      const res = await got(this.url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json;q=0.9,text/plain",
+        },
+        ...this.fetchOptions,
+      })
+      if (res.statusCode !== 200) throw res.statusMessage
+      return this.deserialize(res.body)
+    } catch (e) {
+      console.error("Error reading from cloud DB:", e.message)
+      return null
+    }
+  }
+
+  async write(obj) {
+    try {
+      const res = await got(this.url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        ...this.fetchOptions,
+        body: this.serialize(obj),
+      })
+      if (res.statusCode !== 200) throw res.statusMessage
+      return res.body
+    } catch (e) {
+      console.error("Error writing to cloud DB:", e.message)
+      throw e
+    }
+  }
+}
 
 const {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
-  MessageRetryMap,
   makeCacheableSignalKeyStore,
   jidNormalizedUser,
   PHONENUMBER_MCC,
@@ -135,7 +184,62 @@ global.loadDatabase = async function loadDatabase() {
 
 loadDatabase()
 
+async function checkAndFixSession() {
+  try {
+    if (fs.existsSync(`./${global.authFile}/creds.json`)) {
+      try {
+        const credsFile = fs.readFileSync(`./${global.authFile}/creds.json`, "utf8")
+        JSON.parse(credsFile)
+        console.log("✅ Archivo de credenciales válido")
+      } catch (e) {
+        console.log("❌ Archivo de credenciales corrupto, eliminando...")
+        if (!fs.existsSync(`./${global.authFile}/backup`)) {
+          fs.mkdirSync(`./${global.authFile}/backup`, { recursive: true })
+        }
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
+        fs.renameSync(
+          `./${global.authFile}/creds.json`,
+          `./${global.authFile}/backup/creds-corrupted-${timestamp}.json`,
+        )
+        return false
+      }
+    }
+
+    if (fs.existsSync(`./${global.authFile}`)) {
+      const files = fs.readdirSync(`./${global.authFile}`)
+      if (files.length === 0 || !files.includes("creds.json")) {
+        console.log("⚠️ Directorio de sesión incompleto")
+        return false
+      }
+    } else {
+      fs.mkdirSync(`./${global.authFile}`, { recursive: true })
+    }
+
+    return true
+  } catch (error) {
+    console.error("Error al verificar la sesión:", error)
+    return false
+  }
+}
+
 global.authFile = `sessions`
+const sessionValid = await checkAndFixSession()
+if (!sessionValid) {
+  console.log("🔄 Iniciando nuevo proceso de autenticación")
+  if (fs.existsSync(`./${global.authFile}`)) {
+    const files = fs.readdirSync(`./${global.authFile}`)
+    for (const file of files) {
+      if (file !== "backup") {
+        try {
+          fs.unlinkSync(`./${global.authFile}/${file}`)
+        } catch (e) {
+          console.error("Error al eliminar archivo:", e)
+        }
+      }
+    }
+  }
+}
+
 const { state, saveState, saveCreds } = await useMultiFileAuthState(global.authFile)
 const msgRetryCounterMap = new Map()
 const msgRetryCounterCache = new NodeCache({ stdTTL: 0, checkperiod: 0 })
@@ -192,11 +296,102 @@ const connectionOptions = {
   msgRetryCounterCache: msgRetryCounterCache,
   userDevicesCache: userDevicesCache,
   defaultQueryTimeoutMs: undefined,
-  cachedGroupMetadata: (jid) => global.conn.chats[jid] ?? {},
+  cachedGroupMetadata: (jid) => global.conn?.chats[jid] ?? {},
   version: [2, 3000, 1015901307],
 }
 
-global.conn = makeWASocket(connectionOptions)
+async function startBot() {
+  try {
+    global.conn = makeWASocket(connectionOptions)
+
+    global.conn.ev.on("connection.update", async (update) => {
+      const { connection, lastDisconnect, qr } = update
+
+      if (connection) {
+        console.log("Estado de conexión:", connection)
+      }
+
+      if (connection === "close") {
+        const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut
+        console.log("Conexión cerrada debido a:", lastDisconnect?.error?.message || "Razón desconocida")
+
+        if (shouldReconnect) {
+          console.log("Reconectando...")
+          await startBot()
+        } else {
+          console.log("No se reconectará.")
+        }
+      }
+
+      if (connection === "open") {
+        console.log("✅ Bot conectado correctamente!")
+        if (global.db.data == null) await loadDatabase()
+      }
+
+      if (qr) {
+        console.log("Nuevo QR generado, escanea con la app de WhatsApp")
+      }
+    })
+
+    global.conn.ev.on("creds.update", saveCreds)
+
+    return global.conn
+  } catch (error) {
+    console.error("Error al iniciar el bot:", error)
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+    return startBot()
+  }
+}
+
+async function requestPairingCode(phoneNumber) {
+  if (!phoneNumber) {
+    console.error("❌ Número de teléfono no proporcionado")
+    return null
+  }
+
+  try {
+    console.log(`🔄 Solicitando código de emparejamiento para ${phoneNumber}...`)
+    await new Promise((resolve) => setTimeout(resolve, 3000))
+
+    let codeBot = null
+    let attempts = 0
+    const maxAttempts = 3
+
+    while (!codeBot && attempts < maxAttempts) {
+      attempts++
+      try {
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout requesting pairing code")), 15000),
+        )
+
+        const codePromise = global.conn.requestPairingCode(phoneNumber)
+        codeBot = await Promise.race([codePromise, timeoutPromise])
+
+        if (codeBot) {
+          console.log(`✅ Código obtenido en intento ${attempts}`)
+        }
+      } catch (error) {
+        console.error(`❌ Error en intento ${attempts}:`, error.message)
+
+        if (attempts < maxAttempts) {
+          console.log(`🔄 Reintentando en 5 segundos...`)
+          await new Promise((resolve) => setTimeout(resolve, 5000))
+        }
+      }
+    }
+
+    if (!codeBot) {
+      throw new Error(`No se pudo obtener el código después de ${maxAttempts} intentos`)
+    }
+
+    return codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
+  } catch (error) {
+    console.error("❌ Error al solicitar código de emparejamiento:", error)
+    return null
+  }
+}
+
+await startBot()
 
 if (!fs.existsSync(`./${global.authFile}/creds.json`)) {
   if (opcion === "2" || methodCode) {
@@ -228,10 +423,28 @@ if (!fs.existsSync(`./${global.authFile}/creds.json`)) {
       }
 
       setTimeout(async () => {
-        let codeBot = await global.conn.requestPairingCode(addNumber)
-        codeBot = codeBot?.match(/.{1,4}/g)?.join("-") || codeBot
-        console.log(chalk.yellow("\n\n🍏 introduce el código en WhatsApp."))
-        console.log(chalk.black(chalk.bgGreen(`\n🟣 Su Código es: `)), chalk.black(chalk.red(codeBot)))
+        try {
+          const codeBot = await requestPairingCode(addNumber)
+
+          if (codeBot) {
+            console.log(chalk.yellow("\n\n🍏 Introduce el código en WhatsApp:"))
+            console.log(chalk.black(chalk.bgGreen(`\n🟣 Su Código es: `)), chalk.black(chalk.red(codeBot)))
+
+            let reminderCount = 0
+            const reminderInterval = setInterval(() => {
+              reminderCount++
+              if (reminderCount > 5) {
+                clearInterval(reminderInterval)
+                return
+              }
+              console.log(chalk.yellow(`\n⏳ Recuerda introducir el código: ${codeBot}`))
+            }, 30000)
+          } else {
+            console.error("❌ No se pudo generar el código de emparejamiento")
+          }
+        } catch (error) {
+          console.error("❌ Error en el proceso de emparejamiento:", error)
+        }
       }, 3000)
     }
   }
@@ -288,7 +501,6 @@ let handler = await import("./handler.js")
 
 global.reloadHandler = async (restartConn) => {
   try {
-    // Limpiar todos los listeners existentes
     if (global.conn.ev) {
       global.conn.ev.removeAllListeners("messages.upsert")
       global.conn.ev.removeAllListeners("group-participants.update")
@@ -298,13 +510,11 @@ global.reloadHandler = async (restartConn) => {
       global.conn.ev.removeAllListeners("creds.update")
     }
 
-    // Recargar el handler
     const Handler = await import(`./handler.js?update=${Date.now()}`).catch(console.error)
     if (Object.keys(Handler || {}).length) {
       handler = Handler
     }
 
-    // Reiniciar conexión si es necesario
     if (restartConn) {
       const oldChats = global.conn.chats
       try {
@@ -316,16 +526,22 @@ global.reloadHandler = async (restartConn) => {
       isInit = true
     }
 
-    // Configurar handlers solo si existen
     const setupHandler = (eventName, handlerName) => {
       if (handler[handlerName] && typeof handler[handlerName] === "function") {
         global.conn[handlerName] = handler[handlerName].bind(global.conn)
-        global.conn.ev.on(eventName, global.conn[handlerName])
+        if (global.conn.ev && global.conn.ev.on) {
+          global.conn.ev.on(eventName, global.conn[handlerName])
+        } else {
+          console.warn("global.conn.ev or global.conn.ev.on is undefined. Event listener not attached.")
+        }
         return true
       }
-      // Proporcionar un handler vacío como fallback
       global.conn[handlerName] = () => {}
-      global.conn.ev.on(eventName, global.conn[handlerName])
+      if (global.conn.ev && global.conn.ev.on) {
+        global.conn.ev.on(eventName, global.conn[handlerName])
+      } else {
+        console.warn("global.conn.ev or global.conn.ev.on is undefined. Event listener not attached.")
+      }
       console.log(`Handler ${handlerName} no encontrado o no es una función, usando handler vacío por defecto`)
       return false
     }
@@ -335,7 +551,6 @@ global.reloadHandler = async (restartConn) => {
     setupHandler("groups.update", "groupsUpdate")
     setupHandler("message.delete", "deleteUpdate")
 
-    // Handlers obligatorios
     global.conn.connectionUpdate = connectionUpdate.bind(global.conn)
     global.conn.credsUpdate = saveCreds.bind(global.conn, true)
 
@@ -350,7 +565,6 @@ global.reloadHandler = async (restartConn) => {
   }
 }
 
-// Configuración inicial de handlers
 global.conn.welcome = "Hola, @user\nBienvenido a @group"
 global.conn.bye = "adiós @user"
 global.conn.spromote = "@user promovió a admin"
@@ -360,7 +574,6 @@ global.conn.sSubject = "El nombre del grupo ha sido cambiado a \n@group"
 global.conn.sIcon = "El icono del grupo ha sido cambiado"
 global.conn.sRevoke = "El enlace del grupo ha sido cambiado a \n@revoke"
 
-// Carga de plugins
 const pluginFolder = global.__dirname(join(__dirname, "./plugins/index"))
 const pluginFilter = (filename) => /\.js$/.test(filename)
 global.plugins = {}
@@ -415,7 +628,28 @@ Object.freeze(global.reload)
 watch(pluginFolder, global.reload)
 await global.reloadHandler()
 
-// Quick Test
+function logBotState() {
+  console.info("📊 Estado del bot:")
+  console.info(
+    `- Memoria: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB / ${Math.round(process.memoryUsage().heapTotal / 1024 / 1024)}MB`,
+  )
+
+  if (global.conn) {
+    console.info(`- Conexión: ${global.conn.user ? "Conectado como " + global.conn.user.name : "No conectado"}`)
+    console.info(`- Chats: ${Object.keys(global.conn.chats || {}).length}`)
+  } else {
+    console.info("- Conexión: No iniciada")
+  }
+
+  if (global.db?.data) {
+    console.info(`- Base de datos: Cargada (Usuarios: ${Object.keys(global.db.data.users || {}).length})`)
+  } else {
+    console.info("- Base de datos: No cargada")
+  }
+}
+
+setInterval(logBotState, 300000)
+
 async function _quickTest() {
   const test = await Promise.all(
     [
